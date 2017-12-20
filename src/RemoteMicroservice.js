@@ -132,19 +132,4 @@ module.exports = class RemoteMicroservice {
         const { restApiRoot, definitions } = lookup;
         return this.createClientFromRestURL(app, restApiRoot, definitions, options);
     }
-
-    static mount(app, component, { path = '/', method = 'OPTIONS' } = {}) {
-
-        const accessor = method.toLowerCase();
-        // create a router/sub-app to use
-        const router = new app.loopback.Router();
-        // instantiate the discovery
-        component.install();
-        // install the request handler of the discovery at the specified path
-        router[accessor].call(router, path, component.getRequestHandler());
-        // mount it into the app
-        app.use(router);
-
-        return component;
-    }
 };

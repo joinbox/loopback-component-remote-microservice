@@ -1,4 +1,5 @@
 const error = require('./src/error');
+const { mount } = require('./src/helpers');
 
 const RemoteMicroservice = require('./src/RemoteMicroservice');
 
@@ -12,7 +13,7 @@ module.exports = function(app, options){
 
     if(options.api && options.api.disabled !== true){
         const serviceDiscoveryApi = new ServiceDiscoveryApi(app, options.api);
-        RemoteMicroservice.mount(app, serviceDiscoveryApi, options.api);
+        mount(app, serviceDiscoveryApi, options.api);
     }
 
     app.set('remote-microservice', component);
