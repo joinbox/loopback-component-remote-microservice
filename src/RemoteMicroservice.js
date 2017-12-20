@@ -4,6 +4,13 @@ const { RemoteMicroserviceError } = require('./error');
 
 const ServiceClient = require('./ServiceClient');
 
+/**
+ * Basic class that represents the component and is exposed on the app.
+ *
+ * To get the services use `get(serviceName)` or `getService(serviceName)`
+ *
+ * @type {module.RemoteMicroservice}
+ */
 module.exports = class RemoteMicroservice {
 
     constructor(app, discovery, settings) {
