@@ -5,12 +5,13 @@ const chaiAsPromised = require('chai-as-promised');
 
 const Microservice = require('loopback-microservice');
 
-before('register chai-as-promised', function(){
+before('register chai-as-promised', () => {
     chai.use(chaiAsPromised);
 });
 
 before('boot microservice', async function() {
     const options = {
+        bootDirs: ['loopback-dummy-project/boot'],
         appRootDir: path.resolve(__dirname, '../server'),
         env: 'test',
     };
