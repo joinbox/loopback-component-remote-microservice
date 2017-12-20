@@ -42,6 +42,11 @@ describe('The ServiceDiscovery class', () => {
                 plural: 'publishers',
                 // etc.
             },
+            {
+                name: 'Page',
+                plural: 'pages',
+                // etc.
+            },
         ];
     });
 
