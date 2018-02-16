@@ -1,0 +1,31 @@
+{
+    "_meta": {
+        "sources": [
+            "loopback/common/models",
+            "loopback/server/models",
+            "loopback-dummy-project/models",
+            "../models"
+        ],
+        "mixins": [
+            "loopback/common/mixins",
+            "loopback/server/mixins",
+            "../mixins"
+        ]
+    },
+    "Book": {
+        "dataSource": "db",
+        "public": true
+    },
+    "Page": {
+        "dataSource": "db",
+        "public": true
+    },
+    "Author": {
+        "dataSource": "db",
+        "public": true
+    },
+    "Publisher": {
+        "dataSource": "db",
+        "public": true
+    }
+}
