@@ -1,5 +1,5 @@
 {
-    "name": "loopback-component-remote-microservice",
+    "name": "@joinbox/loopback-component-remote-microservice",
     "version": "0.1.0",
     "description": "Component to discover and consume remote loopback-microservices via rest source",
     "main": "index.js",
@@ -49,6 +49,6 @@
     "dependencies": {
         "knex": "^0.14.2",
         "loopback-connector-rest": "^3.1.0",
-        "loopback-microservice": "git://github.com/joinbox/loopback-microservice.git#initial-setup"
+        "@joinbox/loopback-microservice": "^0.1.0"
     }
 }

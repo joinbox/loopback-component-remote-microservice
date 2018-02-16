@@ -1,4 +1,4 @@
-const Microservice = require('loopback-microservice');
+const Microservice = require('@joinbox/loopback-microservice');
 
 module.exports = class RemoteMicroserviceError extends Microservice.Error {
 
