@@ -1,0 +1,35 @@
+{
+    "_meta": {
+        "sources": [
+            "loopback/common/models",
+            "loopback/server/models",
+            "loopback-dummy-project/models",
+            "./models"
+        ]
+    },
+    "Book": {
+        "dataSource": "db",
+        "public": true
+    },
+    "Page": {
+        "dataSource": "db",
+        "public": true
+    },
+    "Author": {
+        "dataSource": "db",
+        "public": true,
+        "options": {
+            "http": {
+                "path": "autorens"
+            }
+        }
+    },
+    "Publisher": {
+        "dataSource": "db",
+        "public": true
+    },
+    "RemoteModel": {
+        "dataSource": "memory",
+        "public": true
+    }
+}

@@ -1,0 +1,11 @@
+{
+    "../../../index" : {
+        "discovery": {
+            "disabled": false,
+            "pathname": "/discovery",
+            "method": "GET",
+            "resources": [],
+            "ensureInstallation": true
+        }
+    }
+}

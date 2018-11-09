@@ -11,21 +11,5 @@
             "loopback/server/mixins",
             "../mixins"
         ]
-    },
-    "Book": {
-        "dataSource": "db",
-        "public": true
-    },
-    "Page": {
-        "dataSource": "db",
-        "public": true
-    },
-    "Author": {
-        "dataSource": "db",
-        "public": true
-    },
-    "Publisher": {
-        "dataSource": "db",
-        "public": true
     }
 }
