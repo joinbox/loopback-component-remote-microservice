@@ -4,8 +4,12 @@
             "disabled": false,
             "pathname": "/discovery",
             "method": "GET",
-            "resources": [],
-            "ensureInstallation": true
+            "models": {
+                "RemoteModel": true,
+                "Book": true,
+                "Author": true,
+                "Publisher": true
+            }
         }
     }
 }

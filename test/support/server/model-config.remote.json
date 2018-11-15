@@ -4,7 +4,7 @@
             "loopback/common/models",
             "loopback/server/models",
             "loopback-dummy-project/models",
-            "./models"
+            "./remote-models"
         ]
     },
     "Book": {

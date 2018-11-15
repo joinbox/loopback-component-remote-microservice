@@ -1,3 +1,5 @@
+const console = require('console');
+
 const Microservice = require('@joinbox/loopback-microservice');
 
 const resolve_config = require('./resolve_config.js');
@@ -9,7 +11,6 @@ boot.bootDirs.unshift('loopback-dummy-project/boot');
 (async () => {
     try {
         const service = await Microservice.start({ boot });
-        console.log('Remoteservice is booted');
         process.send('service-started');
         process.on('message', async (m) => {
             if(m === 'shutdown-service') {
@@ -20,6 +21,7 @@ boot.bootDirs.unshift('loopback-dummy-project/boot');
             }
         });
     } catch (error) {
+        console.error(error);
         process.send({
             identifier: 'service-error',
             message: error.message,

@@ -1,23 +1,2 @@
 {
-    "../../../index" : {
-        "services": {
-            "remote.jb": {
-                "hostname": "0.0.0.0",
-                "port": 3008,
-                "protocol": "http",
-                "pathname": "",
-                "debug": true,
-                "modelPrefix": "Remote",
-                "discovery": {
-                    "method": "GET",
-                    "pathname": "/discovery"
-                }
-            },
-            "remote.simple.jb": {
-                "hostname": "0.0.0.0",
-                "port": 3008,
-                "restApiRoot": "/api"
-            }
-        }
-    }
 }

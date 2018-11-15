@@ -3,8 +3,8 @@
         "sources": [
             "loopback/common/models",
             "loopback/server/models",
-            "loopback-dummy-project/models",
-            "../models"
+            "./dummy",
+            "./dummy"
         ],
         "mixins": [
             "loopback/common/mixins",

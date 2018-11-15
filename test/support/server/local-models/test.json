@@ -1,0 +1,15 @@
+{
+    "name": "Test",
+    "base": "PersistedModel",
+    "options": {
+        "http": {
+            "path": "tests"
+        }
+    },
+    "relations": {
+        "book": {
+            "type": "belongsTo",
+            "model": "Book"
+        }
+    }
+}

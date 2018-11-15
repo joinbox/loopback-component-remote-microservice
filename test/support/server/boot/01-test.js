@@ -1,3 +1,8 @@
 module.exports = function(app) {
-    //console.log(app.models.Book.getRemotes());
+    // log queries
+    /*app.use((req, res, next) => {
+        const serviceName = app.get('microservice').name;
+        console.log(`${serviceName}: ${req.path}`);
+        next();
+    });*/
 };
