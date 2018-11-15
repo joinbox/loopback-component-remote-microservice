@@ -1,6 +1,8 @@
-const connector = require('loopback-connector-rest');
+const console = require('console');
 
-const { RemoteMicroserviceError } = require('./error');
+const {
+    ServiceNotFoundError,
+} = require('./errors.js');
 
 const ServiceClient = require('./ServiceClient');
 
@@ -13,130 +15,120 @@ const ServiceClient = require('./ServiceClient');
  */
 module.exports = class RemoteMicroservice {
 
-    constructor(app, discovery, settings) {
+    constructor(app, settings, { logger = console } = {}) {
         this.app = app;
-        // discover the service
-        this.discovery = discovery;
         this.settings = settings;
-        this._services = {};
+        this._services = this.createServiceClients(app, settings.services);
+        this.logger = logger;
     }
 
     /**
-     * @todo: add a cache with a ttl
-     *
-     * @param serviceName
-     * @returns {*}
+     * @param {String} serviceName
+     * @returns {ServiceClient}
      * @private
      */
     _getService(serviceName) {
-        return this._services[serviceName];
+        return this._services.get(serviceName);
     }
 
-    async get(serviceName) {
-        return this.getService(serviceName);
+    /**
+     * Alias for getService
+     *
+     * @see this.getService()
+     * @param {String} serviceName
+     * @return {Promise<ServiceClient>}
+     */
+    async get(serviceName, establishConnection = true) {
+        return this.getService(serviceName, establishConnection);
     }
 
-    async getService(serviceName) {
-        const serviceClientPromise = this._getService(serviceName);
-        if (serviceClientPromise) {
-            return serviceClientPromise;
+    /**
+     * Access the service client for the service with the given serviceName
+     *
+     * @param {String} serviceName - name of the service
+     * @param {Boolean} [establishConnection = true] - trigger the discovery or ensure connection
+     * @return {Promise<ServiceClient>}
+     */
+    async getService(serviceName, establishConnection = true) {
+
+        if (!this.hasService(serviceName)) {
+            throw new ServiceNotFoundError(`No service with name "${serviceName}" registered.`);
         }
-        const clientPromise = this.createServiceCient(serviceName);
-        this._services[serviceName] = clientPromise;
-        return clientPromise;
 
-    }
+        const serviceClient = this._getService(serviceName);
 
-    async createServiceCient(serviceName) {
-        // loads the model definitions from the service
-        // could fail because the service is not available or does not exist
-        const lookup = await this.discovery.discover(serviceName);
-        const settings = this.discovery.getServiceSetting(serviceName);
-        return this.createClientFromLookup(this.app, lookup, settings);
-    }
+        // throw error if there is no service
+        if (serviceClient.supportsDiscovery && establishConnection) {
+            return serviceClient.discover();
+        }
 
-    /**
-     * Creates models from definitions (such as the model.json files), usually
-     * loaded over the api of the remote service.
-     *
-     * @param dataSource
-     * @param definitions
-     */
-    attachModelDefinitionsToSource(dataSource, definitions) {
-        definitions.forEach((definition) => {
-            const { name, properties, settings } = this.formatDefinitionParameters(definition);
-            dataSource.createModel(name, properties, settings);
-        });
-    }
+        if (serviceClient.supportsConnecting && establishConnection) {
+            return serviceClient.connect();
+        }
 
-    formatDefinitionParameters(definition) {
-        const rawDefinition = definition.definition;
-        // name of the model
-        const name = definition.modelName;
-        const properties = rawDefinition.properties;
-        // for more information see:
-        // https://loopback.io/doc/en/lb3/REST-connector.html#setting-the-resource-url
-        // @note: we might have to pass more properties of the config
-        const settings = {
-            name,
-            base: rawDefinition.base,
-            resourceName: definition.resourceName,
-        };
-        return { name, properties, settings };
+        return serviceClient;
     }
 
     /**
-     * Creates a data source using the rest connector.
+     * Checks if a service with a given name was configured.
      *
-     * @param loopbackApp
-     * @param baseURL
-     * @param {debug}
-     * @returns {dataSource}
+     * @param {String} serviceName
+     * @return {Boolean}
      */
-    createNormalizedRestSource(app, baseURL, { debug }) {
-        const source = {
-            debug,
-            baseURL,
-            connector,
-        };
-
-        const dataSource = app.loopback.createDataSource(source);
-        return this.normalizeRestConnectorAccess(dataSource);
+    hasService(serviceName) {
+        return this._services.has(serviceName);
     }
 
     /**
-     * Adds an observer to the rest-connector of the data source which
-     * normalizes the passed query to fit the easier interface of e.g.
-     * the postgres-connector.
+     * Normalize hooks of the data source.
      *
-     * The rest-connector seems to have a different interface which requires
-     * you to pass your query as a filter { filter: { where: {} }. On other
-     * connectors/models one can pass the query part directly e.g.
-     * { where: {} }.
+     * Previously used to normalize the rest-connectors parameters, we will use this to propagate
+     * headers such as authorization and accept-language.
      *
-     * @param dataSource
-     * @return dataSource
+     * @param {DataSource} dataSource - a Loopback data source
+     * @return {DataSource}
      */
-    normalizeRestConnectorAccess(dataSource) {
-        dataSource.connector.observe('before execute', (ctx, next) => {
-            if (ctx.req.qs && !ctx.req.qs.filter) {
-                ctx.req.qs = {
-                    filter: Object.assign({}, ctx.req.qs),
-                };
-            }
+    normalizeDataSource(dataSource) {
+        dataSource.connector.remotes.before('**', (ctx, next) => {
             next();
         });
         return dataSource;
     }
 
-    createClientFromRestURL(app, baseURL, definitions, { debug } = {}) {
-        const dataSource = this.createNormalizedRestSource(app, baseURL, { debug });
-        this.attachModelDefinitionsToSource(dataSource, definitions);
-        return new ServiceClient(dataSource);
+    /**
+     * Creates a map containing service clients mapped to their serviceName.
+     *
+     * This also initializes the discovery if the service is configured to be auto-discovered.
+     *
+     * @param {ExpressApp} app - the app given by Loopback
+     * @param {Object} serviceConfig - the service configuration given to the component
+     * @return {Map<{String}, {ServiceClient}>}
+     */
+    createServiceClients(app, serviceConfig = {}) {
+        return Object.values(serviceConfig)
+            .reduce((serviceClients, conf) => {
+                // get the assigned data source
+                const dataSource = app.dataSources[conf.dataSource];
+                this.normalizeDataSource(dataSource);
+                // instantiate the client
+                const client = new ServiceClient(conf, dataSource);
+                // if the client is configured to be auto discovered, trigger the discovery
+                if (client.autoDiscoveryEnabled) {
+                    client.discover().catch(error => this._handleDiscoveryError(error));
+                }
+                // map the client to the services name
+                serviceClients.set(client.serviceName, client);
+                return serviceClients;
+            }, new Map());
     }
 
-    createClientFromLookup(app, lookup, options) {
-        const { restApiRoot, definitions } = lookup;
-        return this.createClientFromRestURL(app, restApiRoot, definitions, options);
+    /**
+     * Logs errors generated by the serices auto discovery
+     *
+     * @param {Error} error
+     * @private
+     */
+    _handleDiscoveryError(error) {
+        this.logger.error(error);
     }
 };
