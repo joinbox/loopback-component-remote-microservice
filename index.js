@@ -1,22 +1,31 @@
-const error = require('./src/error');
-const { mount } = require('./src/helpers');
+const errors = require('./src/errors.js');
+const { mount } = require('./src/helpers.js');
 
+const ComponentConfig = require('./src/ComponentConfig.js');
 const RemoteMicroservice = require('./src/RemoteMicroservice');
-
 const ServiceDiscoveryApi = require('./src/ServiceDiscoveryApi');
-const ServiceDiscovery = require('./src/ServiceDiscovery');
 
-module.exports = function(app, options){
+const { version } = require('./package.json');
 
-    const discovery = new ServiceDiscovery(options.services);
-    const component = new RemoteMicroservice(app, discovery, options);
+module.exports = function(app, options) {
 
-    if(options.api && options.api.disabled !== true){
-        const serviceDiscoveryApi = new ServiceDiscoveryApi(app, options.api);
-        mount(app, serviceDiscoveryApi, options.api);
+    const config = ComponentConfig.normalizeConfiguration(app, options);
+
+    const component = new RemoteMicroservice(app, config);
+    const {
+        discovery,
+        exposeAt,
+    } = config;
+
+    if (discovery && discovery.disabled !== true) {
+        const started = new Date();
+        const discoveryOptions = Object.assign({}, discovery, { version, started });
+        const serviceDiscoveryApi = new ServiceDiscoveryApi(app, discoveryOptions);
+
+        mount(app, serviceDiscoveryApi, discovery);
     }
 
-    app.set('remote-microservice', component);
+    app.set(exposeAt, component);
 };
 
-module.exports.error = error;
+module.exports.errors = errors;
