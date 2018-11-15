@@ -8,6 +8,15 @@ class RemoteMicroserviceError extends MicroserviceError {}
 class ServiceNotFoundError extends RemoteMicroserviceError {}
 
 /**
+ * Error thrown if the remote service cannot be connected
+ */
+class ConnectionError extends RemoteMicroserviceError {}
+
+/**
+ * Error thrown if the max delay of establishing a connection was reached
+ */
+class ConnectionMaxDelayError extends RemoteMicroserviceError {}
+/**
  * General error created during discovery.
  */
 class DiscoveryError extends RemoteMicroserviceError {}
@@ -30,8 +39,10 @@ class DiscoveryMaxDelayError extends DiscoveryError {}
 module.exports = {
     RemoteMicroserviceError,
     ServiceNotFoundError,
+    ConnectionError,
+    ConnectionMaxDelayError,
     DiscoveryError,
     DiscoveryNotSupportedError,
     DiscoveryTimeoutError,
-    DiscoveryMaxDelayError
+    DiscoveryMaxDelayError,
 };
