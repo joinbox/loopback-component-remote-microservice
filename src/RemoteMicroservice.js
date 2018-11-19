@@ -57,7 +57,6 @@ module.exports = class RemoteMicroservice {
 
         const serviceClient = this._getService(serviceName);
 
-        // throw error if there is no service
         if (serviceClient.supportsDiscovery && establishConnection) {
             return serviceClient.discover();
         }
