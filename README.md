@@ -4,113 +4,340 @@ Loopback component to expose and consume models of remote microservices.
 
 ## Installation
 
-Install the package using `npm` (currently only from github) and hook it into your application using
-the corresponding `component-config.json` (see configuration options).
+Install the package using `npm install @joinbox/loopback-component-remote-microservice` and hook it
+into your application using the corresponding `component-config.json` (see configuration options).
 
 ## Configuration
+
+Basically the configuration consists of a consuming part (services) and the exposing part (discovery).
 
 ```Javascript
 {
     "loopback-component-remote-microservice": {
-        // config for the clients to consume other services
-        "services": {
-            // usually the hostname in your network, this will be used to access the service
-            "service.id": {
-                // defaults to the service.id 
-                "hostname": "0.0.0.0",
-                // defaults to 80 (or no port)
-                "port": 3000,
-                // defaults to the root path (empty)
-                "pathname": "/discovery",
-                // defaults to OPTIONS
-                "method": "GET",
-                // debug option which is passed to the rest-datasource
-                "debug": true
-            }
-        },
-        // config for the api that can be discovered by other services
-        // if you don't configure the api, it will not be mounted into the app
-        "api": {
-            // path to load the root discovery information
-            "pathname": "/discovery",
-            // http verb to get the root discovery information, defaults to OPTIONS
-            "method": "GET",
-            // this is a development setting, defaults to true (you cannot hook in the api into
-            // the app before the models are decorated)
-            "ensureInstallation": true,
-            // disable the api, default is false
-            "disabled": false,
-            // which resources should be discoverable, defaults to an empty array which means
-            // all resources
-            "resources": []
-        } 
+        // Configuration how the component is accessible from the app (default: "remote-microservice")
+        "exposeAt": "remote-microservice",
+        // Configuration to consume remote services.
+        "services": {},
+        // Configuration for the discovery-api that can be consumed by other services.
+        // If you don't configure the discovery, it will not be mounted into the app.
+        "discovery": {}
     }
 }
 ```
 
+For details, see below.
+
+### DiscoveryConfiguration
+```Javascript
+{
+        // Configuration for the discovery-api that can be consumed by other services.
+        // If you don't configure the discovery, it will not be mounted into the app.
+        "discovery": {
+            // path to load the root discovery information from, defaults to "discovery"
+            "pathname": "/discovery",
+            // http verb to get the root discovery information, defaults to GET
+            "method": "GET",
+            // disable the api, default is false
+            "disabled": false,
+            // which models should be discoverable, will include all models if not set
+            "models": {
+                "ModelName1": true,
+                "ModelName2": false
+            }
+        }
+    }
+}
+```
+
+### Services Configuration
+
 Every service you want to consume has to be configured in the services object. Otherwise, the
-component will reject the access.
+component will reject the access. If no discovery is configured, the service-client can act as an
+http client to access the service and it's api.
 
-## Consume Service
+```Javascript
+{
+    // config for the clients to consume other services
+    "services": {
+        "service.id": {
+            // remote data source, has to be properly configured in your app
+            "dataSource": "remote-data-source-name",
+            // rootpath of your api, defaults to "/api"
+            "restApiRoot": "/api",
+            // describes how to discover the service, is the same as a discovery definition (see above)
+            // with some configuration for the connection handling
+            "discovery": {
+                // if set to true, the component will start fetching models in the boot process
+                "autoDiscover": true,
+                // timeout for requests to the discovery endpoint in ms (default: 10000)
+                "timeout": 10000,
+                // initial delay for retries, will be increased with every step (default: 1000)
+                "delay": 1000,
+                // offset that will be multiplied with the initial delay in each retry (default: 2)
+                "delayFactor": 2,
+                // if the delay multiplied with the delay factor reaches maxDelay, the discovery will be aborted (default: 30000)
+                "maxDelay": 30000,
+            }
+        }
+    }
+}
+```
 
-To consume a remote service, access the component and use the provided rest models:
+## Usage
+
+To consume data access the component as follows:
  
  ```Javascript
- const services = app.get('remote-microservice');
- // loads the definitions at run time, creates a rest datasource and attaches the remotely 
- // discovered models (this is asynchronous)
- const service = await services.get('service.id');
- // consume data
- service.models.Book.find({where:{title: '1984'}});
+ // use the key of the "exposeAt" configuration property
+ const remoteServices = app.get('remote-microservice');
  ```
- 
- ### Note
- 
-   - The models exposed by the client are rest-models. Their api is slightly different from the persisted model.
-   - Up to now we do not have any sort of error handling if the remote service is not available
-   - We cache the service definition in-memory without a ttl, so to update the definitions you'd 
-   have to restart the service 
+
+ ### Service Client
+
+ To access a client, use the corresponding getter of the component:
+
+ ```Javascript
+  const client = await services.get('service.id');
+ ```
+
+ To consume your service over http you can use the accessor methods of the client, returning a
+ [superagent](https://github.com/visionmedia/superagent) request object:
+
+ ```Javascript
+ // without payload
+ const { status, body } = await client.get('/path/relative/to/the-host');
+ // or
+ const { status, body } = await client.post('/path/relative/to/the-host');
+ // access the api
+ const { status, body } = await client.api.get('/path/relative/to/the/api-root');
+
+ ```
+
+ If your service has a discovery configuration, it will discover the remote service as soon as one
+ accesses the client (or after booting, if `autoDiscover` is set to `true`) and expose the models
+ on its model property:
+
+ ```Javascript
+ const RemoteModel = client.models.RemoteModel;
+ // the methods of the persisted model are available
+ const instance = await client.findOne();
+ ```
+
+### Remote Methods
+
+If the discovered service exposes custom [remote-methods](https://loopback.io/doc/en/lb3/Remote-methods.html)
+the will be available too:
+
+```Javascript
+const customMethod = await RemoteModel.doRemoteLogic(parameter1, parameter2);
+```
+
+Custom remote methods are a special case and might need additional configuration. The arguments
+defined for a remote method (in the `accepts` array of the method definition) might not be suitable
+for the consuming service. Especially the (very useful) `options` parameter requires further
+configuration. Let's therefore make an example:
+
+Let's assume we've got a model called `Locale` on a `language-service`. On this model we provide a
+method `resolveByHeader`. Let's also assume that we've got a middleware to preprocess the
+`accept-language` headers. The method definition might look as follows:
+
+```Javascript
+//remote-model.json
+{
+  "methods": {
+     "resolveByHeader": {
+        "accepts": [
+            {
+                "arg": "options",
+                "type": "object",
+                "http": "optionsFromRequest"
+            }
+        ],
+        "returns": {
+            "arg": "locales",
+            "type": "Array",
+            "root": true
+        }
+     }
+  }
+}
+```
+
+The method will consume the locales in its `resolveByHeader` method:
+
+```Javascript
+// locale.js
+module.exports = (Locale) => {
+    Locale.resolveByHeader = async function(ctx) {
+        const { localesFromMiddleware } = ctx.options;
+        // load the corresponding data
+        return data;
+    };
+};
+```
+
+The remote service will not know how to provide the data which are necessary to populate the options.
+Therefore we extend the definition with a `remote` section:
+
+```Javascript
+// locale.json
+{
+  "methods": {
+     "resolveByHeader": {
+        "accepts": [
+            {
+                "arg": "options",
+                "type": "object",
+                "http": "optionsFromRequest"
+                "remote": {
+                    "preserveOriginal": true,
+                    "accepts": [
+                        {
+                            "arg": "accept-language",
+                            "description": "This argument will be prepended to the original arg",
+                            "type": "string",
+                            "http": {
+                                "source": "header"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "returns": {
+            "arg": "locales",
+            "type": "Array",
+            "root": true
+        }
+     }
+  }
+}
+```
+The discovery api will reformat the methods definition and we can call it accordingly in the
+consuming service:
+
+```Javascript
+const languageClient = await component.get('language-service');
+const options = {};
+const locales = await languageClient.models.Locale.resolveByHeader('de-ch', options);
+```
+
+> **Note:** The accept definition supports adding a "name" property for the argument. Sadly, the
+implementation messes up `arg` and `name` and does not consistently resolve the name of the
+parameter internally. Setting `name` to a value which differs from `arg` will lead to unexpected
+behavior!!
+
+#### AccessTokens
+
+An analogous problem are access tokens which we might have to forward. Loopback injects the
+accessToken into the options parameter of the methods. Strong-remoting seems to handle this case
+separately (it only consumes `accessTokens`) and we can directly forward the current context to
+the remote method:
+
+```Javascript
+const languageClient = await component.get('language-service');
+// options containing the current access token
+const { options } = context;
+const locales = await languageClient.models.Locale.resolveByHeader('de-ch', options);
+```
+
+> **Note:** Strong-remoting has a _bug_ and does not properly forward the necessary configuration
+to its adapter! To enable forwarding, one has to set the a configuration property on the data source.
+The remote-microservice component will set the corresponding value on the adapter as required.
+
+```Javascript
+// datasources.json
+{
+    "language-service": {
+        "name": "language-service",
+        "connector": "remote",
+        "url": "http://languages.com/api",
+        "passAccessToken": true
+    }
+}
+```
+
+ ### Error Handling
+
+ The package provides a variety of Error types to handle errors. Especially the connection/discovery
+ handling is important. The following error types might be important. The follwing cases might occur:
+
+ ```Javascript
+ const { errors } = require('@joinbox/loopback-component-remote-microservice');
+ try {
+    const client = await component.get('service.id');
+    // go on
+ } catch (error) {
+    if(error instanceof errors.ServiceNotFoundError){
+        // service is not configured
+    }
+    if(error instanceof errors.ConnectionMaxDelayError){
+        // was not able to connect to the service (see discovery configuration)
+        // currently connecting and discovering uses the same endpoint!!
+    }
+    if(error instanceof errors.DiscoveryNotSupportedError) {
+        // discovery was not configured, only happens if the discovery was forced using
+        // service.discover();
+    }
+    if(error instanceof errors.DiscoveryMaxDelayError) {
+        // was not able to discovery the service (see discovery configuration)
+        // currently connecting and discovering uses the same endpoint!!
+    }
+ }
+ ```
+
+ #### DiscoveryTimeouts
+
+ If the discovery fails, e.g. reaches the `maxDelay` value, the `get` or `getService` methods will
+ be rejected. The result of the discovery is cached internally. One can omit the discovery
+ (and the connection process) by passing an additional boolean to the service accessors:
+
+ ```Javascript
+ try {
+    const client = await component.get('service.id');
+ catch(error) {
+    if(error instanceof errors.DiscoveryMaxDelayError) {
+        // false prevents the component from triggering the failed discovery/connection
+        const client = await component.get('service.id', false);
+        // true will restart the discovery process
+        await client.discover(true);
+    }
+ }
+ ```
+
+ Using these mechanics will allow you to keep the discovery running in your application as long as
+ you want to.
 
 ## How it works
 
-### The Api (Server)
+### The Discovery
 
-Per default (if configured and enabled), the mainly exposes two entry points: the root discovery url
-and an endpoint per resource. The root discovery url per default can be reached via `OPTIONS` request
-to your service returning the path to the api (relative to the root) and a collection of resources,
-containing the resource name (i.e. the model name) and its path (relative to the api root):
+Per default (if configured and enabled), the remote service exposes a discovery entry point. It will
+return a definition of the service (containing its restApiRoot, the date it was started, the version
+and definitions for the models which are exposed).
 
-```JSON
-{
-    "restApiRoot": "/api",
-    "resources": [
-        {
-            "name": "Book",
-            "path": "/books"
-        },
-        {
-            "name": "Author",
-            "path": "/authors"
-        }
-    ]
-}
-```
-All paths are relative, so the service does not need to know how it is reachable from the requesting
-service.
+### The ServiceClient
 
-Further, the api decorates all the resource enpoints with a remote method listening to an `OPTIONS`
-request to the models base endpoint. The method is called `getDiscoveryDefinition` and is created on your
-models. You can create your own if you whish to expose more or less data on a per model base. This
-endpoint basically returns the definition of the model itself, similar to the corresponding json file.
+The remote-microservice component will trigger the discover as soon as a client is accessed (or
+after booting if autoDiscover is set to true). As soon as the client has discovered the service
+it will generate models on the data source it is attached to and exposes them on its `models`
+property.
 
-### The Discovery (Client)
+## Restrictions and Caveats
 
-On access, the client performs the following steps:
+### Relations, Api and Includes
 
-  1. lookup the root discovery url of the remote service e.g. `http://user.jb/discovery` to gather the information where the api lies and which models are available
-  2. resolve the url of each resource and load the corresponding model definition
-  3. create a data source using the rest-connector in the current application (named after the service id)
-  4. attach models to the data source specified by the definitions previously loaded from the remote service 
+We include relations in the discovery. This allows us to use the common methods on the remote-models
+for accessing relations. Sadly the data-source-juggler is neither able to handle hasAndBelongs to
+many relations (because the relation models are not properly initialized) nor will it be able
+to detect relations that are not locally defined. While the remote-connector correctly delegates
+includes to the remote-service, the data-source-juggler will fail to resolve relations of models
+which are not defined locally. Therefore includes via api will only work partially.
 
-While the paths in the api part are delivered whithout host informations, the client will resolve all
-paths and configure the client/datasource accordingly.
+
+### Model Registry
+
+Loopback has a giant pile of shared state namely its model registry. As soon as we define the models
+on the data source, they will be available for the whole application. Be aware, that existing models
+will be overwritten after the discovery. We could probably prefix the model names, but this would
+require us to rewrite their relations.
