@@ -6,6 +6,7 @@ const {
     DiscoveryMaxDelayError,
     ConnectionMaxDelayError,
 } = require('./errors.js');
+
 /**
  * @todo: separate connecting and discovery
  * @type {module.ServiceClient}
@@ -97,11 +98,16 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
                 const {
                     name,
                     properties,
+                    relations,
+                    http,
+                    methods,
                 } = definition;
                 const model = this.dataSource.createModel(name, properties, {
                     base: 'PersistedModel',
                     dataSource: this.dataSource,
-                    ...definition,
+                    http,
+                    methods,
+                    relations,
                 });
                 this._models[model.modelName] = model;
             });

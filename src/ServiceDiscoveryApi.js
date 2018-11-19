@@ -43,7 +43,7 @@ module.exports = class ServiceDiscoveryApi {
         return app
             .remotes()
             .classes()
-            .filter((entry) => exposeAllModels || modelSettings[entry.name] === true)
+            .filter(entry => exposeAllModels || modelSettings[entry.name] === true)
             .map((entry) => {
                 const model = app.models[entry.name];
                 return this.getModelDiscoveryDefinition(model);
@@ -59,7 +59,7 @@ module.exports = class ServiceDiscoveryApi {
      *
      * @return {{models: Array, restApiRoot: String, version: String}}
      */
-    getServiceDiscoveryDefinition(){
+    getServiceDiscoveryDefinition() {
         const {
             version,
             started,
@@ -80,8 +80,6 @@ module.exports = class ServiceDiscoveryApi {
      *
      * This representation is used to generate the models in a remote service. To customize
      * this behavior on a per model base, one can add a `getDiscoveryDefinition` to the model.
-     *
-     * @todo: test
      *
      * @param model
      * @return {*}
@@ -108,8 +106,61 @@ module.exports = class ServiceDiscoveryApi {
             name: model.modelName,
             http: sharedClass.http,
             properties,
-            methods: settings.methods || {},
+            methods: this.formatMethodDefinitions(settings.methods),
             relations: settings.relations || {},
         };
+    }
+
+    /**
+     * Consumes additional configuration on the remote-method definition's accepts property to be
+     * suitable for remote-services.
+     *
+     * @param {Object} methods
+     * @return {Object}
+     */
+    formatMethodDefinitions(methods = {}) {
+        return Object.entries(methods)
+            .reduce((newDefinitions, [methodName, methodDefinition]) => {
+                newDefinitions[methodName] = this._formatMethodDefinition(methodDefinition);
+                return newDefinitions;
+            }, {});
+    }
+
+    _formatMethodDefinition(methodDefinition) {
+        if (!Array.isArray(methodDefinition.accepts)) {
+            return methodDefinition;
+        }
+        const accepts = this._formatRemoteMethodArgs(methodDefinition.accepts);
+        return Object.assign(
+            {},
+            methodDefinition,
+            { accepts },
+        );
+    }
+
+    _formatRemoteMethodArgs(originalAccepts = []) {
+        const newArguments = [];
+        originalAccepts.forEach((argDefinition) => {
+            newArguments.push(...this._formateRemoteMethodArg(argDefinition));
+        });
+        return newArguments;
+    }
+
+    _formateRemoteMethodArg(originalArgumentDefinition) {
+        const { remote } = originalArgumentDefinition;
+        // no special configuration for remote services found
+        if (!remote) {
+            return [originalArgumentDefinition];
+        }
+
+        const { preserveOriginal } = remote;
+        // arguments defined for remote services
+        const remoteAccepts = remote.accepts || [];
+
+        if (preserveOriginal === false) {
+            return remoteAccepts;
+        }
+
+        return [...remoteAccepts, originalArgumentDefinition];
     }
 };

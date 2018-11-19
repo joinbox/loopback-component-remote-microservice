@@ -83,15 +83,14 @@ module.exports = class RemoteMicroservice {
      * Normalize hooks of the data source.
      *
      * Previously used to normalize the rest-connectors parameters, we will use this to propagate
-     * headers such as authorization and accept-language.
+     * settings which are not passed by loopback and might normalize the hooks.
      *
      * @param {DataSource} dataSource - a Loopback data source
      * @return {DataSource}
      */
     normalizeDataSource(dataSource) {
-        dataSource.connector.remotes.before('**', (ctx, next) => {
-            next();
-        });
+        const passToken = dataSource.settings.passAccessToken === true;
+        dataSource.connector.remotes.serverAdapter.options.passAccessToken = passToken;
         return dataSource;
     }
 
