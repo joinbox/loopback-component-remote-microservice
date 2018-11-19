@@ -9,7 +9,7 @@
     "final:after": {
         "@joinbox/loopback-microservice#errorHandler": {
             "params": {
-                "debug": false,
+                "debug": true,
                 "log": false,
                 "microservice": "${microservice}"
             }

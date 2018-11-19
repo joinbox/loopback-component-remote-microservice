@@ -20,6 +20,7 @@
     "remote-service-default": {
         "name": "remote-service-default",
         "url": "http://0.0.0.0:3008/api",
+        "passAccessToken": true,
         "connector": "remote"
     },
     "remote-service-unavailable": {

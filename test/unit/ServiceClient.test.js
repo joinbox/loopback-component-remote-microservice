@@ -13,7 +13,8 @@ function createClient(config = {}, datasource = null) {
     const serviceConfig = Object.assign(
         {},
         base,
-        config);
+        config,
+    );
     return new ServiceClient(serviceConfig, datasource);
 }
 
@@ -25,21 +26,21 @@ describe('The ServiceClient class', () => {
         };
     });
 
-    it('takes a config object, a data source and sets up an api client', function() {
-        const client = createClient({ restApiRoot: ''});
+    it('takes a config object, a data source and sets up an api client', () => {
+        const client = createClient({ restApiRoot: '' });
 
         expect(client).to.have.property('base', base.url);
         expect(client).to.have.property('api').that.has.property('base', base.url);
     });
 
-    it('alters the api client url (and normalizes it) if a rest api root is specified', function() {
+    it('alters the api client url (and normalizes it) if a rest api root is specified', () => {
         const client = createClient();
 
         expect(client).to.have.property('base', base.url);
         expect(client).to.have.property('api').that.has.property('base', `${base.url}api/`);
     });
 
-    it('exposes accessors to describe the connectivity of the client (configured)', function() {
+    it('exposes accessors to describe the connectivity of the client (configured)', () => {
         const clientWithoutDiscovery = createClient();
         const clientWithDiscovery = createClient({
             discovery: {

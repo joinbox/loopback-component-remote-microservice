@@ -11,5 +11,14 @@
             "loopback/server/mixins",
             "../mixins"
         ]
+    },
+    "User": {
+        "dataSource": "memory"
+    },
+    "AccessToken": {
+        "dataSource": "memory"
+    },
+    "ACL": {
+        "dataSource": "memory"
     }
 }

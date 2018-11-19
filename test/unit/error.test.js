@@ -4,7 +4,7 @@ const { describe, it } = require('mocha');
 const errors = require('../../src/errors.js');
 
 describe('The error module', () => {
-    it('exposes a RemoteMicroserviceError class', () => {
+    it('exposes a several Error classes', () => {
         const errorNames = [
             'RemoteMicroserviceError',
             'ServiceNotFoundError',

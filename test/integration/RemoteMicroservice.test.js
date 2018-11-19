@@ -76,6 +76,7 @@ describe('The RemoteMicroservice Component', () => {
         }).ok(() => true);
 
         expect(status).to.be.equal(200);
+
         expect(body).to.be.an('object');
         expect(body).to.have.property('id', test.id);
         expect(body).to.have.property('bookId', book.id);
@@ -275,13 +276,48 @@ describe('The RemoteMicroservice Component', () => {
             expect(result).to.have.length(2);
         });
 
-        it('exposes models providing custom remote methods', async function() {
+        it(
+            'exposes models providing custom remote methods and properly maps arguments to the outgoing request',
+            async function() {
+                const service = await this.component.getService(this.remoteServiceDefault);
+                const RemoteModel = service.models.RemoteModel;
+
+                // this argument should be sent to the remote service via header
+                const languages = 'de-ch, de-it, en-gb';
+                const message = 'to my service';
+                const result = await RemoteModel.sayHi(message, languages, {});
+
+                expect(result).to.be.equal(`Hi ${message} in ${languages}`);
+            },
+        );
+
+        it('forwards the access token from the context if configured to do so', async function() {
             const service = await this.component.getService(this.remoteServiceDefault);
             const RemoteModel = service.models.RemoteModel;
 
-            const result = await RemoteModel.sayHi('to my service');
+            const id = 'testingToken';
+            // normally one has to take the options from the context!
+            const contextOptions = { accessToken: { id } };
+            // @see: remote-model.js
+            const response = await RemoteModel.checkAccessToken(contextOptions);
+            expect(response).to.be.equal(id);
+        });
 
-            expect(result).to.be.equal('Hi to my service');
+        it('does not forward the access token from the context by default', async function() {
+            const service = await this.component.getService(this.remoteServiceName);
+            const RemoteModel = service.models.RemoteModel;
+
+            const id = 'testingToken';
+            // normally one has to take the options from the context!
+            const contextOptions = { accessToken: { id } };
+            // @see: remote-model.js
+            try {
+                await RemoteModel.checkAccessToken(contextOptions);
+                const msg = 'The access token should not be forwarded if it is not configured to do so'
+                return Promise.reject(new Error(msg));
+            } catch(err) {
+                expect(err.message).to.contain('AccessToken was not properly resolved');
+            }
         });
 
     });

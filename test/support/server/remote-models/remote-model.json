@@ -18,8 +18,29 @@
                 {
                     "arg": "options",
                     "type": "object",
+                    "http": "optionsFromRequest",
+                    "remote": {
+                        "preserveOriginal": true,
+                        "accepts": [
+                            {
+                                "arg": "accept-language",
+                                "description": "This argument will be prepended to the original arg",
+                                "type": "string",
+                                "http": {
+                                    "source": "header"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "arg": "request",
+                    "type": "object",
                     "http": {
-                        "source": "context"
+                        "source": "req"
+                    },
+                    "remote": {
+                        "preserveOriginal": false
                     }
                 }
             ],
@@ -31,6 +52,20 @@
             "http": {
                 "path": "/say-hello/:name",
                 "verb": "get"
+            }
+        },
+        "checkAccessToken": {
+            "accepts": [
+                {
+                    "arg": "options",
+                    "type": "object",
+                    "http": "optionsFromRequest"
+                }
+            ],
+            "returns": {
+                "arg": "tokenId",
+                "type": "string",
+                "isRoot": true
             }
         }
     }

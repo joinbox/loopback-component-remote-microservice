@@ -13,7 +13,8 @@
                     "models": {
                         "Book": true,
                         "Author": true,
-                        "Publisher": false
+                        "Publisher": false,
+                        "RemoteModel": true
                     }
                 },
                 "restApiRoot": "/api"
