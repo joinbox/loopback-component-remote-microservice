@@ -232,6 +232,11 @@ describe('The RemoteMicroservice Component', () => {
             expect(models).to.not.have.property('Publisher');
         });
 
+        it('exposes the models on the app to make them shareable', async function() {
+            await this.component.getService(this.remoteServiceName);
+            expect(this.service.app.models).to.have.property('Author');
+        });
+
         it('exposes models providing access to data', async function() {
             const service = await this.component.getService(this.remoteServiceName);
             const Author = service.models.Author;

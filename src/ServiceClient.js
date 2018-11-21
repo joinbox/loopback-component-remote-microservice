@@ -109,6 +109,9 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
                     methods,
                     relations,
                 });
+                // expose the model on the app to make it shareable
+                // @todo: make this configurable
+                this.dataSource.app.model(model);
                 this._models[model.modelName] = model;
             });
         } catch (error) {
