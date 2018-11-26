@@ -37,7 +37,7 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
     }
 
     get autoDiscoveryEnabled() {
-        return this.supportsDiscovery && this.config.discovery.autoDiscover == true;
+        return this.supportsDiscovery && this.config.discovery.autoDiscover === true;
     }
 
     /**
@@ -161,10 +161,15 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
 
         try {
             // create and postpone the request
-            const { body } = await this._timeout(() => this.invoke(method, pathname).timeout(timeout), nextDelay);
+            // @note: timeout is a method of the superagent request
+            const { body } = await this._timeout(() => {
+                return this.invoke(method, pathname).timeout(timeout);
+            }, nextDelay);
             return body;
         } catch (error) {
             if (this._shouldRetryConnecting(error)) {
+                // compute the delay for the next connection attempt
+                // prevent newDelay from being 0 forever using Math.max
                 const newDelay = Math.max(nextDelay * delayFactor, delay);
                 return this._connectService(options, newDelay);
             }
