@@ -1,0 +1,45 @@
+{
+    "../../../index" : {
+        "services": {
+            "remote.jb": {
+                "dataSource": "remote-service",
+                "discovery": {
+                    "method": "GET",
+                    "pathname": "/discovery",
+                    "autoDiscover": true,
+                    "timeout": 10000,
+                    "delay": 1000,
+                    "maxDelay": 30000,
+                    "models": {
+                        "Book": true,
+                        "Author": true,
+                        "Publisher": false,
+                        "RemoteModel": true
+                    }
+                },
+                "restApiRoot": "/api"
+            },
+            "remote.default.jb": {
+                "dataSource": "remote-service-default",
+                "discovery": {}
+            },
+            "remote.without-autodiscovery.jb": {
+                "dataSource": "remote-service-default",
+                "discovery": {
+                    "autoDiscover": false
+                }
+            },
+            "remote.without-connection.jb": {
+                "dataSource": "remote-service",
+                "restApiRoot": "/api"
+            },
+            "remote.unavailable.jb": {
+                "dataSource": "remote-service-unavailable",
+                "discovery": {
+                    "maxDelay": 4000,
+                    "autoDiscover": false
+                }
+            }
+        }
+    }
+}

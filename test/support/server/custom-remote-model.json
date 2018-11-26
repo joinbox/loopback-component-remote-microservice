@@ -1,0 +1,7 @@
+{
+    "name": "CustomRemoteModel",
+    "base": "Model",
+    "http": {
+        "path": "customPath"
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "db": {
+        "schema": "remote_service"
+    },
+    "memory": {
+        "name": "memory",
+        "connector": "memory"
+    }
+}

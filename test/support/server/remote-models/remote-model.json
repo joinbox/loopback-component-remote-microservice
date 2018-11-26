@@ -1,0 +1,72 @@
+{
+    "name": "RemoteModel",
+    "base": "Model",
+    "http": {
+        "path": "/a-remote-model"
+    },
+    "methods": {
+        "sayHi": {
+            "accepts": [
+                {
+                    "arg": "name",
+                    "type": "string",
+                    "required": true,
+                    "http": {
+                        "source": "path"
+                    }
+                },
+                {
+                    "arg": "options",
+                    "type": "object",
+                    "http": "optionsFromRequest",
+                    "remote": {
+                        "preserveOriginal": true,
+                        "accepts": [
+                            {
+                                "arg": "accept-language",
+                                "description": "This argument will be prepended to the original arg",
+                                "type": "string",
+                                "http": {
+                                    "source": "header"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "arg": "request",
+                    "type": "object",
+                    "http": {
+                        "source": "req"
+                    },
+                    "remote": {
+                        "preserveOriginal": false
+                    }
+                }
+            ],
+            "returns": {
+                "arg": "greeting",
+                "type": "string",
+                "isRoot": true
+            },
+            "http": {
+                "path": "/say-hello/:name",
+                "verb": "get"
+            }
+        },
+        "checkAccessToken": {
+            "accepts": [
+                {
+                    "arg": "options",
+                    "type": "object",
+                    "http": "optionsFromRequest"
+                }
+            ],
+            "returns": {
+                "arg": "tokenId",
+                "type": "string",
+                "isRoot": true
+            }
+        }
+    }
+}

@@ -5,5 +5,14 @@
                 "${restApiRoot}"
             ]
         }
+    },
+    "final:after": {
+        "@joinbox/loopback-microservice#errorHandler": {
+            "params": {
+                "debug": true,
+                "log": false,
+                "microservice": "${microservice}"
+            }
+        }
     }
 }

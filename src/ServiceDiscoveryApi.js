@@ -1,130 +1,178 @@
-// @todo: add a configuration for the discovery endpoints
-// the root endpoint for the discovery can be freely configured (method and path)
-// default is OPTIONS '/'
-// (but has to be configured on the client)
-
-const { RemoteMicroserviceError } = require('./error');
-
-const defaultConfig = {
-    rootPath: '/',
-    method: 'OPTIONS',
-    ensureInstallation: true,
-    resources: [],
-};
-
+/**
+ * Class that assembles the data required to discover the current service.
+ *
+ * Will be hooked in by the component if configured accordingly.
+ *
+ * @type {module.ServiceDiscoveryApi}
+ */
 module.exports = class ServiceDiscoveryApi {
 
+    /**
+     * @param {*} app - Loopback app
+     * @param {Object} settings
+     * @param {String} [settings.restApiRoot] - defaults to the api root configured on the app
+     */
     constructor(app, settings = {}) {
         const restApiRoot = app.get('restApiRoot');
         this.app = app;
         this.models = app.models;
-        this.settings = Object.assign.call({}, { restApiRoot }, defaultConfig, settings);
-        this._installed = false;
+        this.settings = Object.assign({
+            restApiRoot,
+            version: '1.0.0',
+            started: new Date(),
+        }, settings);
     }
 
-    get endpoints() {
-        return this.getResourceEndpoints(this.app);
-    }
-
+    /**
+     * @return {String}
+     */
     get restApiRoot() {
         return this.settings.restApiRoot;
     }
 
-    getResourceEndpoints(app) {
+    /**
+     * Extracts the definitions of all mdoels exposed via rest api.
+     *
+     * @param app the Loopback app
+     * @return {Array}
+     */
+    getModelDefinitions(app) {
+        const modelSettings = this.settings.models || {};
+        const exposeAllModels = Object.keys(modelSettings).length === 0;
+
         return app
             .remotes()
             .classes()
+            .filter(entry => exposeAllModels || modelSettings[entry.name] === true)
             .map((entry) => {
-                const modelPath = entry.http.path;
-                return {
-                    name: entry.name,
-                    path: `${modelPath}`,
-                };
+                const model = app.models[entry.name];
+                return this.getModelDiscoveryDefinition(model);
             });
     }
 
     /**
-     * Returns the request handler which can be hooked into the loopback application.
+     * Assembles the data which can be consumed by the remote service.
      *
-     * @returns {function(*=, *=, *)}
+     * Returns the relative restApiRoot (as configured by the app), the version of the package
+     * (not used yet, to ensure compatibility in the future) and the definitions used to create
+     * models in the remote service.
+     *
+     * @return {{models: Array, restApiRoot: String, version: String}}
      */
-    getRequestHandler() {
-        if (this._installed === false
-            && this.settings.ensureInstallation === true) {
-            const message = 'The discovery did not properly install the remote method handlers for' +
-                ' each resource, therefore the client might not be able to load their definitions.' +
-                ' Either call the install method of the discovery upfront, or set the' +
-                ' ensureInstallation option to false';
-
-            throw new RemoteMicroserviceError(message);
-        }
-        return async(req, res, next) => {
-            try {
-                await this.handleRequest(req, res);
-            } catch (err) {
-                next(err);
-            }
+    getServiceDiscoveryDefinition() {
+        const {
+            version,
+            started,
+            restApiRoot,
+        } = this.settings;
+        // load the model definitions at runtime to make sure all the models are published
+        const models = this.getModelDefinitions(this.app);
+        return {
+            models,
+            restApiRoot,
+            started,
+            version,
         };
-    }
-
-    addRemoteMethod(model) {
-        const component = this;
-        // check if the method already exists:
-        // if not, we assume that the model was customized to deliver a specific format
-        if (typeof model.getDiscoveryDefinition !== 'function') {
-            model.getDiscoveryDefinition = function(cb) {
-                cb(null, component.formatModelSettings(model));
-            };
-        }
-        model.remoteMethod('getDiscoveryDefinition', {
-            returns: [
-                { arg: 'body', type: 'json', root: true },
-            ],
-            http: {
-                path: '/',
-                verb: 'OPTIONS',
-            },
-        });
-    }
-
-    formatModelSettings(model) {
-        const settings = Object.assign({}, model.definition.settings);
-        settings.name = model.modelName;
-        settings.properties = model.definition.rawProperties;
-        return settings;
     }
 
     /**
-     * Adds a remote method to all the specified resource endpoints (eg: OPTIONS /api/books)
-     * returning the result of model.getDiscoveryDefinition.
+     * Extracts a normalized representation of the model definition.
      *
-     * If the model already has a getDiscoveryDefinition method, we assume that the method is
-     * customized to return a custom format.
+     * This representation is used to generate the models in a remote service. To customize
+     * this behavior on a per model base, one can add a `getDiscoveryDefinition` to the model.
      *
-     * @param   endpoints array of all the enpoints provided by the rest api, containing model name
-     *          and the path relative to the restApiRoot
+     * @param model
+     * @return {*}
      */
-    decorateModelEndpoints() {
-        this.endpoints.forEach((entry) => {
-            const model = this.app.models[entry.name];
-            this.addRemoteMethod(model);
-        });
-    }
+    getModelDiscoveryDefinition(model) {
 
-    install() {
-        if (this._installed === false) {
-            this.decorateModelEndpoints();
-            this._installed = true;
+        // Entrypoint to customize the behavior of a model
+        if (typeof model.getDiscoveryDefinition === 'function') {
+            return model.getDiscoveryDefinition();
         }
+
+        const {
+            sharedClass,
+            definition,
+            modelName,
+        } = model;
+
+        // We need to properly convert the definition to a plain object to ensure it can be
+        // properly serialized.
+        const {
+            properties,
+            settings,
+        } = definition.toJSON();
+
+        return {
+            name: modelName,
+            http: sharedClass.http,
+            properties,
+            methods: this.formatMethodDefinitions(settings.methods),
+            relations: settings.relations || {},
+        };
     }
 
-    async handleRequest(req, res) {
-        const response = {
-            restApiRoot: this.restApiRoot,
-            resources: this.endpoints,
-        };
-        return res
-            .status(200)
-            .send(response);
+    /**
+     * Consumes additional configuration on the remote-method definition's accepts property to be
+     * suitable for remote-services.
+     *
+     * @param {Object} methods
+     * @return {Object}
+     */
+    formatMethodDefinitions(methods = {}) {
+        return Object.entries(methods)
+            .reduce((newDefinitions, [methodName, methodDefinition]) => {
+                newDefinitions[methodName] = this._formatMethodDefinition(methodDefinition);
+                return newDefinitions;
+            }, {});
+    }
+
+    _formatMethodDefinition(methodDefinition) {
+
+        const { accepts } = methodDefinition;
+
+        if (!accepts) {
+            return methodDefinition;
+        }
+        // make sure accepts is an array
+        const originalAccepts = Array.isArray(accepts)
+            ? accepts
+            : [accepts];
+        // expand the configuration for methods consumed by remote-clients
+        const remoteMethodArgs = this._formatRemoteMethodArgs(originalAccepts);
+        return Object.assign(
+            {},
+            methodDefinition,
+            {
+                accepts: remoteMethodArgs,
+            },
+        );
+    }
+
+    _formatRemoteMethodArgs(originalAccepts = []) {
+        const newArguments = [];
+        originalAccepts.forEach((argDefinition) => {
+            newArguments.push(...this._formatRemoteMethodArg(argDefinition));
+        });
+        return newArguments;
+    }
+
+    _formatRemoteMethodArg(originalArgumentDefinition) {
+        const { remote } = originalArgumentDefinition;
+        // no special configuration for remote services found
+        if (!remote) {
+            return [originalArgumentDefinition];
+        }
+
+        const { preserveOriginal } = remote;
+        // arguments defined for remote services
+        const remoteAccepts = remote.accepts || [];
+
+        if (preserveOriginal === false) {
+            return remoteAccepts;
+        }
+
+        return [...remoteAccepts, originalArgumentDefinition];
     }
 };

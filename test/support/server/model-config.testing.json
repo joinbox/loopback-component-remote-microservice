@@ -1,0 +1,14 @@
+{
+    "_meta": {
+        "sources": [
+            "loopback/common/models",
+            "loopback/server/models",
+            "./local-models",
+            "./dummy"
+        ]
+    },
+    "Test": {
+        "dataSource": "memory",
+        "public": true
+    }
+}

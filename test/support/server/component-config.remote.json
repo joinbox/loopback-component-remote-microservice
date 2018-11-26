@@ -1,0 +1,15 @@
+{
+    "../../../index" : {
+        "discovery": {
+            "disabled": false,
+            "pathname": "/discovery",
+            "method": "GET",
+            "models": {
+                "RemoteModel": true,
+                "Book": true,
+                "Author": true,
+                "Publisher": true
+            }
+        }
+    }
+}

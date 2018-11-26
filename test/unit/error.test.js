@@ -1,10 +1,21 @@
-const {expect} = require('chai');
+const { expect } = require('chai');
+const { describe, it } = require('mocha');
 
-const error = require('../../src/error');
+const errors = require('../../src/errors.js');
 
-describe('The error module', function(){
-    it('exposes a RemoteMicroserviceError class', function(){
-        expect(error)
-            .to.have.property('RemoteMicroserviceError');
+describe('The error module', () => {
+    it('exposes a several Error classes', () => {
+        const errorNames = [
+            'RemoteMicroserviceError',
+            'ServiceNotFoundError',
+            'ConnectionError',
+            'ConnectionMaxDelayError',
+            'DiscoveryError',
+            'DiscoveryNotSupportedError',
+            'DiscoveryTimeoutError',
+            'DiscoveryMaxDelayError',
+        ];
+        const errorTypes = Object.keys(errors);
+        expect(errorTypes).to.have.same.members(errorNames);
     });
 });

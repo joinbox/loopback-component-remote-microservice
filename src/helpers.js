@@ -1,16 +1,21 @@
 module.exports = {
-    mount(app, component, { pathname = '/', method = 'OPTIONS' } = {}) {
+    mount(app, serviceDiscoveryApi, { pathname = '/', method = 'GET' } = {}) {
 
         const accessor = method.toLowerCase();
         // create a router/sub-app to use
         const router   = new app.loopback.Router();
-        // instantiate the discovery
-        component.install();
         // install the request handler of the discovery at the specified path
-        router[accessor].call(router, pathname, component.getRequestHandler());
+        router[accessor].call(router, pathname, (req, res, next) => {
+            try {
+                const response = serviceDiscoveryApi.getServiceDiscoveryDefinition();
+                res.status(200).json(response);
+            } catch (error) {
+                next(error);
+            }
+        });
         // mount it into the app
         app.use(router);
 
-        return component;
-    }
+        return serviceDiscoveryApi;
+    },
 };

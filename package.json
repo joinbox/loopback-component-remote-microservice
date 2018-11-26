@@ -1,6 +1,6 @@
 {
     "name": "@joinbox/loopback-component-remote-microservice",
-    "version": "0.1.2",
+    "version": "1.0.0",
     "description": "Component to discover and consume remote loopback-microservices via rest source",
     "main": "index.js",
     "directories": {
@@ -13,7 +13,7 @@
     "scripts": {
         "lint": "node_modules/.bin/eslint .",
         "test:watch": "WATCH_TESTS=\"--watch\" npm run test",
-        "test:base": "mocha $NODE_DEBUG_OPTION $WATCH_TESTS --recursive --check-leaks --full-trace --exit",
+        "test:base": "mocha $NODE_DEBUG_OPTION $WATCH_TESTS --recursive --check-leaks --timeout 20000 --full-trace --exit",
         "test:unit": "npm run test:base ./test/support/setup/unit.js ./test/unit",
         "test:integration": "npm run test:base ./test/support/setup/integration.js ./test/integration",
         "test": "npm run test:base ./test/support/setup/integration.js ./test/integration ./test/unit"
@@ -36,17 +36,19 @@
     },
     "homepage": "https://github.com/joinbox/loopback-component-remote-microservice#readme",
     "devDependencies": {
-        "chai": "^4.1.2",
+        "@joinbox/eslint-config-joinbox": "^1.0.8",
+        "chai": "^4.2.0",
         "chai-as-promised": "^7.1.1",
-        "eslint": "^4.12.1",
-        "eslint-config-joinbox": "git+https://github.com/joinbox/joinbox-linter-configuration.git",
-        "loopback-connector-postgresql": "^3.2.0",
+        "eslint": "^4.19.1",
+        "loopback-connector-postgresql": "^3.5.0",
         "loopback-dummy-project": "github:joinbox/loopback-dummy-project",
-        "mocha": "^4.0.1",
-        "nock": "^9.1.4"
+        "mocha": "^4.1.0",
+        "nock": "^9.6.1"
     },
     "dependencies": {
-        "loopback-connector-rest": "^3.1.0",
-        "@joinbox/loopback-microservice": "^0.1.0"
+        "@joinbox/loopback-microservice": "^1.2.0",
+        "loopback-connector-remote": "^3.4.0",
+        "superagent": "^3.8.0",
+        "yargs": "^12.0.2"
     }
 }

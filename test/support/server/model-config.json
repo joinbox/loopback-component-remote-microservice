@@ -3,8 +3,8 @@
         "sources": [
             "loopback/common/models",
             "loopback/server/models",
-            "loopback-dummy-project/models",
-            "../models"
+            "./dummy",
+            "./dummy"
         ],
         "mixins": [
             "loopback/common/mixins",
@@ -12,20 +12,13 @@
             "../mixins"
         ]
     },
-    "Book": {
-        "dataSource": "db",
-        "public": true
+    "User": {
+        "dataSource": "memory"
     },
-    "Page": {
-        "dataSource": "db",
-        "public": true
+    "AccessToken": {
+        "dataSource": "memory"
     },
-    "Author": {
-        "dataSource": "db",
-        "public": true
-    },
-    "Publisher": {
-        "dataSource": "db",
-        "public": true
+    "ACL": {
+        "dataSource": "memory"
     }
 }

@@ -1,3 +1,13 @@
 {
-    "host": "0.0.0.0"
+    "host": "0.0.0.0",
+    "microservice": {
+        "name": "local-service"
+    },
+    "remoting": {
+        "rest" : {
+            "handleErrors" : false,
+            "normalizeHttpPath" : false,
+            "xml" : false
+        }
+    }
 }
