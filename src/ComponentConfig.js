@@ -23,7 +23,7 @@ module.exports = class ComponentConfig {
         this.normalize();
     }
 
-    validateDiscovery(discovery = {}) {}
+    validateDiscovery() {}
 
     validateServices(services = {}) {
         Object.entries(services).forEach(([serviceName, config]) => {
@@ -54,6 +54,7 @@ module.exports = class ComponentConfig {
 
         return Object.entries(services).reduce((newConfig, [serviceName, config]) => {
             const normalizedConfig = this.normalizeService(serviceName, config);
+            // eslint-disable-next-line no-param-reassign
             newConfig[serviceName] = normalizedConfig;
             return newConfig;
         }, {});
@@ -114,7 +115,7 @@ module.exports = class ComponentConfig {
                 const expose = this.constructor.modelIsExposed(modelName, models);
                 const isPublic = this.constructor.modelIsPublic(modelName, models);
                 const isGlobal = this.constructor.modelIsGlobal(modelName, models);
-
+                // eslint-disable-next-line no-param-reassign
                 newSettings[modelName] = { expose, isPublic, isGlobal };
                 return newSettings;
             }, {});
@@ -125,7 +126,7 @@ module.exports = class ComponentConfig {
     }
 
     normalizeRestApiRoot(config) {
-        return config.hasOwnProperty('restApiRoot')
+        return Object.prototype.hasOwnProperty.call(config, 'restApiRoot')
             ? config.restApiRoot
             : '/api';
     }

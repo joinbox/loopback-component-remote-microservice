@@ -134,15 +134,18 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
             http,
             methods,
             relations,
-            public: isPublic
+            public: isPublic,
         });
 
         if (ComponentConfig.modelIsGlobal(name, modelsConfig)) {
             // expose the model on the app to make it shareable
-            this.dataSource.app.model(model, {
-                dataSource: this.dataSource,
-                public: isPublic,
-            });
+            this.dataSource.app.model(
+                model,
+                {
+                    dataSource: this.dataSource,
+                    public: isPublic,
+                },
+            );
         }
 
         return model;
@@ -186,7 +189,10 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
         try {
             // create and postpone the request
             // @note: timeout is a method of the superagent request
-            const { body } = await this._timeout(() => this.invoke(method, pathname).timeout(timeout), nextDelay);
+            const { body } = await this._timeout(
+                () => this.invoke(method, pathname).timeout(timeout),
+                nextDelay,
+            );
             return body;
         } catch (error) {
             if (this._shouldRetryConnecting(error)) {

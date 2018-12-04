@@ -1,4 +1,5 @@
 const Microservice = require('@joinbox/loopback-microservice');
+const console = require('console');
 
 const resolve_config = require('../setup/resolve_config.js');
 

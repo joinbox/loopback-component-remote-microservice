@@ -8,12 +8,12 @@ const boot = resolve_config('remote');
 
 boot.bootDirs.unshift('loopback-dummy-project/boot');
 
-(async () => {
+(async() => {
     try {
         const service = await Microservice.start({ boot });
         process.send('service-started');
-        process.on('message', async (m) => {
-            if(m === 'shutdown-service') {
+        process.on('message', async(m) => {
+            if (m === 'shutdown-service') {
                 console.log('shutdown remote service');
                 await service.stop();
                 process.send('service-stopped');

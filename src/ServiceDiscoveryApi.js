@@ -127,6 +127,7 @@ module.exports = class ServiceDiscoveryApi {
     formatMethodDefinitions(methods = {}) {
         return Object.entries(methods)
             .reduce((newDefinitions, [methodName, methodDefinition]) => {
+                // eslint-disable-next-line no-param-reassign
                 newDefinitions[methodName] = this._formatMethodDefinition(methodDefinition);
                 return newDefinitions;
             }, {});

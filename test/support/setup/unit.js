@@ -1,5 +1,6 @@
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
+const { before } = require('mocha');
 
 const Microservice = require('@joinbox/loopback-microservice');
 
