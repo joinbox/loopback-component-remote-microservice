@@ -91,11 +91,11 @@ http client to access the service and it's api.
                     // legacy format, will be transformed to { expose: false, isGlobal: false, isPublic: false }
                     "ModelName2": false,
                     "ModelName3": {
-                        // the model is hooked into the app
+                        // the model is hooked into the app (or exposed on the api)
                         "expose": true,
-                        // the model will be attached to the application and can be consumed globally
+                        // the model will be attached to the application and can be consumed globally (default: true)
                         "isGlobal": true
-                        // the model will be reachable via api
+                        // the model will be reachable via api (default: false)
                         "isPublic": true,
                     }
                 }
