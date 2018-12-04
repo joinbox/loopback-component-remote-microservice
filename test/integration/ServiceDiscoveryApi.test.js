@@ -61,4 +61,5 @@ describe('The ServiceDiscoveryApi ', () => {
             expect(definition).to.have.property('version', '1.0.1');
         });
     });
+
 });

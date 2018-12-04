@@ -57,4 +57,69 @@ describe('The ServiceClient class', () => {
         expect(clientWithoutDiscovery.autoDiscoveryEnabled).to.equal(false);
     });
 
+    describe('ServiceClient._defineModel(definition, modelsConfig)', () => {
+
+        before('create mock datasource', function(){
+            const ds = {
+                models: new Map(),
+                createModel(name, properties, settings) {
+                    const ctor = {};
+                    this.models.set(ctor, settings);
+                    return ctor;
+                },
+                app: {
+                    models: new Map(),
+                    model(ctor, settings) {
+                        this.models.set(ctor, settings);
+                    },
+                },
+            };
+            this.ds = ds;
+            // usually this configuration should be normalized!!
+            this.modelsConfig = {
+                ConfigFalse: false,
+                ConfigTrue: true,
+                ConfigPublic: {
+                    expose: true,
+                    isPublic: true,
+                },
+                ConfigEmpty: {},
+                ConfigNegated: {
+                    isPublic: true,
+                    isGlobal: false,
+                },
+            };
+            this.client = createClient(null, ds);
+        });
+
+        it('registers the model globally but not public if the config is set to true', function(){
+            const name = 'ConfigTrue';
+            const model = this.client._defineModel({ name }, this.modelsConfig);
+            expect(this.ds.models.has(model)).to.be.equal(true);
+            expect(this.ds.app.models.has(model)).to.be.equal(true);
+
+            const settings = this.ds.app.models.get(model);
+            expect(settings).to.have.property('public', false);
+        });
+
+        it('registers the model globally and public if set accordingly', function(){
+            const name = 'ConfigPublic';
+            const model = this.client._defineModel({ name }, this.modelsConfig);
+            expect(this.ds.models.has(model)).to.be.equal(true);
+            expect(this.ds.app.models.has(model)).to.be.equal(true);
+
+            const settings = this.ds.app.models.get(model);
+            expect(settings).to.have.property('public', true);
+        });
+
+        it('registers locally and and therefore the isGlobal has no effect', function(){
+            const name = 'ConfigNegated';
+            const model = this.client._defineModel({ name }, this.modelsConfig);
+            expect(this.ds.models.has(model)).to.be.equal(true);
+            // not available on the app
+            expect(this.ds.app.models.has(model)).to.be.equal(false);
+        });
+
+    });
+
 });

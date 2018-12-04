@@ -278,10 +278,14 @@ describe('The RemoteMicroservice Component', () => {
             expect(books).to.have.length(2);
         });
 
-        it.skip('does not expose models over the rest api', async function() {
-            const service = await this.component.getService(this.remoteServiceName);
-            const authors = await this.service.app.models;
-            const res = await this.service.api.get('/authors').ok(() => true);
+        it('does only expose models which are accordingly configured over the api', async function() {
+            await this.component.getService(this.remoteServiceName);
+            const bookResponse = await this.service.api.get('/books').ok(() => true);
+            const authorResponse = await this.service.api.get('/authors').ok(() => true);
+            // books are not public
+            expect(bookResponse).to.have.property('status', 404);
+            // authors are public
+            expect(authorResponse).to.have.property('status', 200);
         });
 
         it('exposes models providing query limit support', async function() {

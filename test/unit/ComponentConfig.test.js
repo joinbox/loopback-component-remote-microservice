@@ -159,6 +159,11 @@ describe('The ComponentConfig class', function() {
                     isPublic: true,
                 },
                 ConfigEmpty: {},
+                ConfigNegated: {
+                    expose: false,
+                    isPublic: true,
+                    isGlobal: false,
+                },
             };
             const url = 'http://service.jb/';
             const restApiRoot = '/api';
@@ -211,6 +216,11 @@ describe('The ComponentConfig class', function() {
                                     expose: true,
                                     isPublic: false,
                                     isGlobal: true,
+                                },
+                                ConfigNegated: {
+                                    expose: false,
+                                    isPublic: true,
+                                    isGlobal: false,
                                 },
                             },
                         }),
