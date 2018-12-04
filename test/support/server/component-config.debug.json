@@ -1,0 +1,24 @@
+{
+    "../../../index" : {
+        "services": {
+            "remote.jb": {
+                "dataSource": "remote-service",
+                "discovery": {
+                    "models": {
+                        "Book": true,
+                        "Author": {
+                            "isPublic": true
+                        },
+                        "Publisher": false,
+                        "RemoteModel": {
+                            "isGlobal": false
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "loopback-component-explorer": {
+        "mountPath": "/explorer"
+    }
+}

@@ -12,9 +12,13 @@
                     "maxDelay": 30000,
                     "models": {
                         "Book": true,
-                        "Author": true,
+                        "Author": {
+                            "isPublic": true
+                        },
                         "Publisher": false,
-                        "RemoteModel": true
+                        "RemoteModel": {
+                            "isGlobal": false
+                        }
                     }
                 },
                 "restApiRoot": "/api"

@@ -5,7 +5,9 @@
             "pathname": "/discovery",
             "method": "GET",
             "models": {
-                "RemoteModel": true,
+                "RemoteModel": {
+                    "expose": true
+                },
                 "Book": true,
                 "Author": true,
                 "Publisher": true

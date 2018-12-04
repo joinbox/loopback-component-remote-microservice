@@ -1,3 +1,5 @@
+const ComponentConfig = require('./ComponentConfig.js');
+
 /**
  * Class that assembles the data required to discover the current service.
  *
@@ -37,13 +39,12 @@ module.exports = class ServiceDiscoveryApi {
      * @return {Array}
      */
     getModelDefinitions(app) {
-        const modelSettings = this.settings.models || {};
-        const exposeAllModels = Object.keys(modelSettings).length === 0;
+        const modelSettings = this.settings.models;
 
         return app
             .remotes()
             .classes()
-            .filter(entry => exposeAllModels || modelSettings[entry.name] === true)
+            .filter(({ name }) => ComponentConfig.modelIsExposed(name, modelSettings))
             .map((entry) => {
                 const model = app.models[entry.name];
                 return this.getModelDiscoveryDefinition(model);
@@ -106,6 +107,9 @@ module.exports = class ServiceDiscoveryApi {
 
         return {
             name: modelName,
+            // Loopback allows us to override the settings for the endpoints in the
+            // model-config.json. Nevertheless, strong remoting seems to ignore them.
+            // The correct way to get the http configuration would be via settings.http
             http: sharedClass.http,
             properties,
             methods: this.formatMethodDefinitions(settings.methods),
