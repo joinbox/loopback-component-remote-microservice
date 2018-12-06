@@ -182,7 +182,7 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
         } = options;
 
         if (nextDelay > maxDelay) {
-            const msg = `Maximal delay of ${maxDelay} reached`;
+            const msg = `Maximal connection delay of "${maxDelay}" reached for service "${this.serviceName}"`;
             throw new ConnectionMaxDelayError(msg);
         }
 

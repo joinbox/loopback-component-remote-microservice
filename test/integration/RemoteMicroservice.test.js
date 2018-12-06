@@ -120,6 +120,7 @@ describe('The RemoteMicroservice Component', () => {
                 return Promise.reject(new Error('Unavailable service should eventually fail'));
             } catch (error) {
                 expect(error).to.be.instanceof(DiscoveryMaxDelayError);
+                expect(error).to.have.property('message').that.includes(this.remoteUnavailable);
             }
         });
 
@@ -130,6 +131,7 @@ describe('The RemoteMicroservice Component', () => {
                 return Promise.reject(new Error('Unavailable service should eventually fail'));
             } catch (error) {
                 expect(error).to.be.instanceof(ConnectionMaxDelayError);
+                expect(error).to.have.property('message').that.includes(this.remoteUnavailable);
             }
         });
 
