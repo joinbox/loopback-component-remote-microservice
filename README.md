@@ -7,6 +7,13 @@ Loopback component to expose and consume models of remote microservices.
 Install the package using `npm install @joinbox/loopback-component-remote-microservice` and hook it
 into your application using the corresponding `component-config.json` (see configuration options).
 
+> **Note:** In version 1.1.0 we introduced an implicitly breaking change in the configuration:
+> Models that were configured in the discovery section of the services configuration by setting
+> them to true where automatically interpreted by Loopback as public. They are not anymore!
+> If you want the discovered models to be public (which means are they available in strong-remoting,
+> _e.g._ in the api and the angular sdk) then adjust your configuration and configure your models
+> according to the ServicesConfiguration section below.
+
 ## Configuration
 
 Basically the configuration consists of a consuming part (services) and the exposing part (discovery).
@@ -42,7 +49,7 @@ For details, see below.
             // which models should be discoverable, will include all models if not set
             "models": {
                 "ModelName1": true,
-                "ModelName2": false
+                "ModelName2": false,
             }
         }
     }
@@ -77,6 +84,21 @@ http client to access the service and it's api.
                 "delayFactor": 2,
                 // if the delay multiplied with the delay factor reaches maxDelay, the discovery will be aborted (default: 30000)
                 "maxDelay": 30000,
+                // models
+                "models": {
+                    // legacy format, will be transformed to { expose: true, isGlobal: true, isPublic: false }
+                    "ModelName1": true,
+                    // legacy format, will be transformed to { expose: false, isGlobal: false, isPublic: false }
+                    "ModelName2": false,
+                    "ModelName3": {
+                        // the model is hooked into the app (or exposed on the api)
+                        "expose": true,
+                        // the model will be attached to the application and can be consumed globally (default: true)
+                        "isGlobal": true
+                        // the model will be reachable via api (default: false)
+                        "isPublic": true,
+                    }
+                }
             }
         }
     }

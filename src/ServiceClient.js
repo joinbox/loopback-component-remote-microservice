@@ -1,5 +1,7 @@
 const { MicroserviceApiClient } = require('@joinbox/loopback-microservice');
 
+const ComponentConfig = require('./ComponentConfig.js');
+
 const {
     ConnectionError,
     DiscoveryNotSupportedError,
@@ -83,45 +85,70 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
         try {
             // for now we are using the cached response from the connecting process
             const { models } = await this.connect();
+            const modelsConfig = this.config.discovery.models;
 
-            const modelSettings = this.config.discovery.models || {};
-            const exposeAllModels = Object.keys(modelSettings).length === 0;
-            // Filter definitions according to configuration.
-            // If no configuration is defined, we attach all models.
-            const modelsToDefine = models.filter((definition) => {
+            models.forEach((definition) => {
                 const { name } = definition;
-                return exposeAllModels || modelSettings[name] === true;
+                if (ComponentConfig.modelIsExposed(name, modelsConfig)) {
+                    const model = this._defineModel(definition, modelsConfig);
+                    this._models[name] = model;
+                }
             });
-
-            // define the models within the given dataSource
-            modelsToDefine.forEach((definition) => {
-                const {
-                    name,
-                    properties,
-                    relations,
-                    http,
-                    methods,
-                } = definition;
-                const model = this.dataSource.createModel(name, properties, {
-                    base: 'PersistedModel',
-                    dataSource: this.dataSource,
-                    http,
-                    methods,
-                    relations,
-                });
-                // expose the model on the app to make it shareable
-                // @todo: make this configurable
-                this.dataSource.app.model(model);
-                this._models[model.modelName] = model;
-            });
+            return this;
         } catch (error) {
             if (error instanceof ConnectionMaxDelayError) {
                 throw new DiscoveryMaxDelayError(error.message, { error });
             }
             throw error;
         }
+    }
 
-        return this;
+    /**
+     * Hook the model into the app.
+     *
+     * If the model is configured to be global (via isGlobal property), it is mounted into the
+     * application and avialable via app.models.ModelName (Default is true).
+     *
+     * If the model is configured to be public (via isPublic property), it is declared public
+     * and exposed on the api of the consuming service (Default is false).
+     *
+     * @param {Object} definition
+     * @param {Object} [modelsConfig] the models section of the service discovery section
+     * @return {Model} - the loopback model
+     *
+     * @private
+     */
+    _defineModel(definition, modelsConfig) {
+        const {
+            name,
+            properties,
+            relations,
+            http,
+            methods,
+        } = definition;
+
+        const isPublic = ComponentConfig.modelIsPublic(name, modelsConfig);
+
+        const model = this.dataSource.createModel(name, properties, {
+            base: 'PersistedModel',
+            http,
+            methods,
+            relations,
+            public: isPublic,
+        });
+
+        if (ComponentConfig.modelIsGlobal(name, modelsConfig)) {
+            // expose the model on the app to make it shareable
+            this.dataSource.app.model(
+                model,
+                {
+                    dataSource: this.dataSource,
+                    public: isPublic,
+                },
+            );
+        }
+
+        return model;
     }
 
     /**
@@ -155,16 +182,17 @@ module.exports = class ServiceClient extends MicroserviceApiClient {
         } = options;
 
         if (nextDelay > maxDelay) {
-            const msg = `Maximal delay of ${maxDelay} reached`;
+            const msg = `Maximal connection delay of "${maxDelay}" reached for service "${this.serviceName}"`;
             throw new ConnectionMaxDelayError(msg);
         }
 
         try {
             // create and postpone the request
             // @note: timeout is a method of the superagent request
-            const { body } = await this._timeout(() => {
-                return this.invoke(method, pathname).timeout(timeout);
-            }, nextDelay);
+            const { body } = await this._timeout(
+                () => this.invoke(method, pathname).timeout(timeout),
+                nextDelay,
+            );
             return body;
         } catch (error) {
             if (this._shouldRetryConnecting(error)) {

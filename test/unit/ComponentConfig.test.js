@@ -13,21 +13,21 @@ function mergeDiscovery(values = {}) {
         disabled: false,
         maxDelay: 40000,
         method: 'get',
-        models: null,
+        models: undefined,
         pathname: '/discovery',
         timeout: 10000,
     }, values);
-};
+}
 
 describe('The ComponentConfig class', function() {
 
-    before('instantiate a configuration', function(){
+    before('instantiate a configuration', function() {
         this.app = {
             dataSources: {
                 testDataSource: {
                     connector: {
                         name: 'remote-connector',
-                        url: 'http://service.jb/api'
+                        url: 'http://service.jb/api',
                     },
                 },
             },
@@ -88,7 +88,7 @@ describe('The ComponentConfig class', function() {
             },
         );
 
-        it('throws an error if the data source is not available', function() {
+        it('throws an error if the data source is not available', () => {
             const plainConfig = {
                 services: {
                     testService: {
@@ -105,7 +105,7 @@ describe('The ComponentConfig class', function() {
             }).to.throw(RemoteMicroserviceError);
         });
 
-        it('throws an error if the dataSource is not attached to a remote-connector', function() {
+        it('throws an error if the dataSource is not attached to a remote-connector', () => {
             const plainConfig = {
                 services: {
                     testService: {
@@ -128,7 +128,7 @@ describe('The ComponentConfig class', function() {
             }).to.throw(RemoteMicroserviceError);
         });
 
-        it('normalizes the discovery settings of a service if they are present', function(){
+        it('normalizes the discovery settings of a service if they are present', function() {
             const plainConfig = {
                 services: {
                     testService: {
@@ -145,14 +145,25 @@ describe('The ComponentConfig class', function() {
         });
     });
 
-    describe('ComponentConfig.normalizeConfiguration(app, config):', function(){
-        it('instantiates a ComponentConfig and calls the normalize method', function(){
+    describe('ComponentConfig.normalizeConfiguration(app, config):', () => {
+
+        it('instantiates a ComponentConfig and calls the normalize method', function() {
             const dataSource = 'testDataSource';
             const exposeAt = 'some-property';
             const maxDelay = 3000;
             const models = {
-                Test: true,
-                Dummy: false,
+                ConfigFalse: false,
+                ConfigTrue: true,
+                ConfigPublic: {
+                    expose: true,
+                    isPublic: true,
+                },
+                ConfigEmpty: {},
+                ConfigNegated: {
+                    expose: false,
+                    isPublic: true,
+                    isGlobal: false,
+                },
             };
             const url = 'http://service.jb/';
             const restApiRoot = '/api';
@@ -185,7 +196,33 @@ describe('The ComponentConfig class', function() {
                         dataSource,
                         discovery: mergeDiscovery({
                             maxDelay,
-                            models,
+                            models: {
+                                ConfigFalse: {
+                                    expose: false,
+                                    isPublic: false,
+                                    isGlobal: false,
+                                },
+                                ConfigTrue: {
+                                    expose: true,
+                                    isPublic: false,
+                                    isGlobal: true,
+                                },
+                                ConfigPublic: {
+                                    expose: true,
+                                    isPublic: true,
+                                    isGlobal: true,
+                                },
+                                ConfigEmpty: {
+                                    expose: true,
+                                    isPublic: false,
+                                    isGlobal: true,
+                                },
+                                ConfigNegated: {
+                                    expose: false,
+                                    isPublic: true,
+                                    isGlobal: false,
+                                },
+                            },
                         }),
                         name: 'test1',
                         restApiRoot,

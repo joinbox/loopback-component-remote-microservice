@@ -42,7 +42,9 @@ describe('The RemoteMicroservice Component', () => {
         }, {});
 
         expect(models).to.have.property('Book');
-        expect(models).to.have.property('Author');
+        expect(models).to.have.property('Author')
+            .that.has.property('http')
+            .that.has.property('path', '/authors');
         expect(models).to.have.property('RemoteModel');
         expect(models).to.have.property('Publisher');
 
@@ -118,6 +120,7 @@ describe('The RemoteMicroservice Component', () => {
                 return Promise.reject(new Error('Unavailable service should eventually fail'));
             } catch (error) {
                 expect(error).to.be.instanceof(DiscoveryMaxDelayError);
+                expect(error).to.have.property('message').that.includes(this.remoteUnavailable);
             }
         });
 
@@ -128,6 +131,7 @@ describe('The RemoteMicroservice Component', () => {
                 return Promise.reject(new Error('Unavailable service should eventually fail'));
             } catch (error) {
                 expect(error).to.be.instanceof(ConnectionMaxDelayError);
+                expect(error).to.have.property('message').that.includes(this.remoteUnavailable);
             }
         });
 
@@ -237,6 +241,11 @@ describe('The RemoteMicroservice Component', () => {
             expect(this.service.app.models).to.have.property('Author');
         });
 
+        it.skip('does not expose a model on the app if isGlobal is set to false', async function() {
+            await this.component.getService(this.remoteServiceName);
+            expect(this.service.app.models).to.not.have.property('RemoteModel');
+        });
+
         it('exposes models providing access to data', async function() {
             const service = await this.component.getService(this.remoteServiceName);
             const Author = service.models.Author;
@@ -269,6 +278,16 @@ describe('The RemoteMicroservice Component', () => {
             const books = orwell.books();
 
             expect(books).to.have.length(2);
+        });
+
+        it('does only expose models which are accordingly configured over the api', async function() {
+            await this.component.getService(this.remoteServiceName);
+            const bookResponse = await this.service.api.get('/books').ok(() => true);
+            const authorResponse = await this.service.api.get('/authors').ok(() => true);
+            // books are not public
+            expect(bookResponse).to.have.property('status', 404);
+            // authors are public
+            expect(authorResponse).to.have.property('status', 200);
         });
 
         it('exposes models providing query limit support', async function() {

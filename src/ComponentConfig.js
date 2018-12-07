@@ -23,7 +23,7 @@ module.exports = class ComponentConfig {
         this.normalize();
     }
 
-    validateDiscovery(discovery = {}) {}
+    validateDiscovery() {}
 
     validateServices(services = {}) {
         Object.entries(services).forEach(([serviceName, config]) => {
@@ -54,9 +54,71 @@ module.exports = class ComponentConfig {
 
         return Object.entries(services).reduce((newConfig, [serviceName, config]) => {
             const normalizedConfig = this.normalizeService(serviceName, config);
+            // eslint-disable-next-line no-param-reassign
             newConfig[serviceName] = normalizedConfig;
             return newConfig;
         }, {});
+    }
+
+    static modelIsExposed(name, modelsConfig) {
+        // if there is no configuration all models are exposed
+        if (!modelsConfig) {
+            return true;
+        }
+        const config = modelsConfig[name];
+        // false or not set
+        if (!config) {
+            return false;
+        }
+        if (config === true) {
+            return true;
+        }
+        return config.expose !== false;
+    }
+
+    static modelIsPublic(name, modelsConfig) {
+        // all models are exposed by default
+        if (!modelsConfig) {
+            return false;
+        }
+        const config = modelsConfig[name];
+        // false, not set or set to true (legacy configuration)
+        if (!config || config === true) {
+            return false;
+        }
+        return config.isPublic === true;
+    }
+
+    static modelIsGlobal(name, modelsConfig) {
+        // default behavior
+        if (!modelsConfig) {
+            return true;
+        }
+        const config = modelsConfig[name];
+        // false or not set
+        if (!config) {
+            return false;
+        }
+        // default behavior if set to true
+        if (config === true) {
+            return true;
+        }
+        return config.isGlobal !== false;
+    }
+
+    normalizeDiscoveryModels(models) {
+        if (!models) {
+            return models;
+        }
+        return Object.keys(models)
+            .reduce((newSettings, modelName) => {
+                const expose = this.constructor.modelIsExposed(modelName, models);
+                const isPublic = this.constructor.modelIsPublic(modelName, models);
+                const isGlobal = this.constructor.modelIsGlobal(modelName, models);
+                // eslint-disable-next-line no-param-reassign
+                newSettings[modelName] = { expose, isPublic, isGlobal };
+                return newSettings;
+            }, {});
     }
 
     normalizeServiceName(serviceKey, config) {
@@ -64,7 +126,7 @@ module.exports = class ComponentConfig {
     }
 
     normalizeRestApiRoot(config) {
-        return config.hasOwnProperty('restApiRoot')
+        return Object.prototype.hasOwnProperty.call(config, 'restApiRoot')
             ? config.restApiRoot
             : '/api';
     }
@@ -101,17 +163,22 @@ module.exports = class ComponentConfig {
                 disabled: true,
             };
         }
-        return Object.assign({
-            disabled: discovery.disabled === true,
-            pathname: '/discovery',
-            method: 'get',
-            models: null,
-            autoDiscover: true,
-            timeout: 10000,
-            delay: 1000,
-            delayFactor: 2,
-            maxDelay: 40000,
-        }, discovery);
+        const models = this.normalizeDiscoveryModels(discovery.models);
+        return Object.assign(
+            {
+                disabled: discovery.disabled === true,
+                pathname: '/discovery',
+                method: 'get',
+                autoDiscover: true,
+                timeout: 10000,
+                delay: 1000,
+                delayFactor: 2,
+                maxDelay: 40000,
+            },
+            discovery,
+            // override the models with a normalized variant
+            { models },
+        );
     }
 
     normalize() {

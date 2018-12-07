@@ -3,7 +3,7 @@ module.exports = {
 
         const accessor = method.toLowerCase();
         // create a router/sub-app to use
-        const router   = new app.loopback.Router();
+        const router = new app.loopback.Router();
         // install the request handler of the discovery at the specified path
         router[accessor].call(router, pathname, (req, res, next) => {
             try {

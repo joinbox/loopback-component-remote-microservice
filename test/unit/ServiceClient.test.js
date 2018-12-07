@@ -57,4 +57,121 @@ describe('The ServiceClient class', () => {
         expect(clientWithoutDiscovery.autoDiscoveryEnabled).to.equal(false);
     });
 
+    describe('ServiceClient._defineModel(definition, modelsConfig)', () => {
+
+        before('create mock datasource', async function(){
+            const ds = {
+                models: new Map(),
+                createModel(name, properties, settings) {
+                    this.models.set(name, settings);
+                    return { modelName: name };
+                },
+                app: {
+                    models: new Map(),
+                    model(ctor, settings) {
+                        this.models.set(ctor.modelName, settings);
+                    },
+                },
+            };
+            this.ds = ds;
+            this.modelDiscovery = {
+                models: [
+                    {
+                        name: 'ConfigFalse',
+                    },
+                    {
+                        name: 'ConfigTrue',
+                    },
+                    {
+                        name: 'ConfigNoExpose',
+                    },
+                    {
+                        name: 'ConfigPublic',
+                    },
+                    {
+                        name: 'ConfigEmpty',
+                    },
+                    {
+                        name: 'ConfigNegated',
+                    },
+                ],
+            };
+            // usually this configuration should be normalized!!
+            this.modelsConfig = {
+                ConfigFalse: false,
+                ConfigTrue: true,
+                ConfigNoExpose: {
+                    expose: false,
+                },
+                ConfigPublic: {
+                    isPublic: true,
+                },
+                ConfigEmpty: {},
+                ConfigNegated: {
+                    isPublic: true,
+                    isGlobal: false,
+                },
+            };
+            this.client = createClient({
+                discovery: {
+                    models: this.modelsConfig,
+                },
+            }, ds);
+            // bypass the discovery
+            this.client._connected = Promise.resolve(this.modelDiscovery);
+
+            await this.client.discover();
+        });
+
+        it('registers the model globally and private by default', function(){
+            const name = 'ConfigEmpty';
+            expect(this.ds.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.get(name)).to.have.property('public', false);
+
+            expect(this.client.models).to.have.property(name);
+        });
+
+        it('registers the model globally but not public if the config is set to true', function(){
+            const name = 'ConfigTrue';
+            expect(this.ds.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.get(name)).to.have.property('public', false);
+
+            expect(this.client.models).to.have.property(name);
+        });
+
+        it('does not register the model if it is set to false', function(){
+            const name = 'ConfigFalse';
+            expect(this.ds.models.has(name)).to.be.equal(false);
+            expect(this.ds.app.models.has(name)).to.be.equal(false);
+
+            expect(this.client.models).to.not.have.property(name);
+        });
+
+        it('does not register the model if expose is set to false', function(){
+            const name = 'ConfigNoExpose';
+            expect(this.ds.models.has(name)).to.be.equal(false);
+            expect(this.ds.app.models.has(name)).to.be.equal(false);
+
+            expect(this.client.models).to.not.have.property(name);
+        });
+
+        it('registers the model publicly if isPublic is set to true', function(){
+            const name = 'ConfigPublic';
+            expect(this.ds.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.get(name)).to.have.property('public', true);
+            expect(this.client.models).have.property(name);
+        });
+
+        it('registers the model locally and and therefore the isGlobal has no effect', function(){
+            const name = 'ConfigNegated';
+            expect(this.ds.models.has(name)).to.be.equal(true);
+            expect(this.ds.app.models.has(name)).to.be.equal(false);
+            expect(this.client.models).have.property(name);
+        });
+
+    });
+
 });

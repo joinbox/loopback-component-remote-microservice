@@ -89,6 +89,7 @@ module.exports = class RemoteMicroservice {
      */
     normalizeDataSource(dataSource) {
         const passToken = dataSource.settings.passAccessToken === true;
+        // eslint-disable-next-line no-param-reassign
         dataSource.connector.remotes.serverAdapter.options.passAccessToken = passToken;
         return dataSource;
     }
