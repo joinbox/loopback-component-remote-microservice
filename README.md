@@ -108,7 +108,7 @@ http client to access the service and it's api.
 ## Usage
 
 To consume data access the component as follows:
- 
+
  ```Javascript
  // use the key of the "exposeAt" configuration property
  const remoteServices = app.get('remote-microservice');
@@ -249,6 +249,52 @@ implementation messes up `arg` and `name` and does not consistently resolve the 
 parameter internally. Setting `name` to a value which differs from `arg` will lead to unexpected
 behavior!!
 
+#### RestAdapter (header forwarding)
+
+Besides the aforementioned possibility to add headers as a parameter using the extended
+configuration for remote methods, we introduced a custom rest adapter. It allows us to:
+
+  1. Pass context options to events emitted by `strong-remoting`
+  2. Forward headers through built-in methods of Loopback models (e.g. an accept-language header
+through the built in find method)
+
+To hook it in, one has to change the configuration format of the datasources to `js`:
+
+```Javascript
+// datasources.local.js
+const { RestAdapter } = require('@joinbox/loopback-component-remote-microservice');
+
+module.exports = {
+    "your-remote-service": {
+        "connector": "remote",
+        "adapter": RestAdapter,
+        "options" : {
+            "rest": {
+                "passRemoteHeaders": true,
+                // remoteHeaders is the default key
+                "remoteHeaderKey": "remoteHeaders",
+            }
+        }
+    }
+}
+
+```
+
+To send custom headers, pass them using the options object:
+
+```Javascript
+const options = {
+    // remoteHeaderKey property
+    remoteHeaders: {
+        'accept-language': 'it-it'
+    }
+};
+const result = await MyRemoteModel.find({}, options);
+```
+
+**Be aware:** It's up to your remote service to handle these headers. They are not automatically
+processed by the remote-microservice component.
+
 #### AccessTokens
 
 An analogous problem are access tokens which we might have to forward. Loopback injects the
@@ -263,17 +309,30 @@ const { options } = context;
 const locales = await languageClient.models.Locale.resolveByHeader('de-ch', options);
 ```
 
-> **Note:** Strong-remoting has a _bug_ and does not properly forward the necessary configuration
-to its adapter! To enable forwarding, one has to set the a configuration property on the data source.
-The remote-microservice component will set the corresponding value on the adapter as required.
+> **Note:** Strong-remoting does not properly document how to enable access tokens via config. To
+enable the passing of the access tokens add tot following to your datasource config:
 
 ```Javascript
 // datasources.json
 {
     "language-service": {
-        "name": "language-service",
-        "connector": "remote",
-        "url": "http://languages.com/api",
+        "options": {
+            "rest": {
+                "passAccessToken": true
+            }
+        }
+    }
+}
+```
+
+We previously introduced an additional setting on the data source which was passed to the adapter.
+This configuration still works but we recommend using the option given by strong-remoting.
+
+```Javascript
+// datasources.json
+// @note: this is deprecated
+{
+    "language-service": {
         "passAccessToken": true
     }
 }

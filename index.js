@@ -2,8 +2,9 @@ const errors = require('./src/errors.js');
 const { mount } = require('./src/helpers.js');
 
 const ComponentConfig = require('./src/ComponentConfig.js');
-const RemoteMicroservice = require('./src/RemoteMicroservice');
-const ServiceDiscoveryApi = require('./src/ServiceDiscoveryApi');
+const RemoteMicroservice = require('./src/RemoteMicroservice.js');
+const RestAdapter = require('./src/RemoteMicroserviceRestAdapter.js');
+const ServiceDiscoveryApi = require('./src/ServiceDiscoveryApi.js');
 
 const { version } = require('./package.json');
 
@@ -29,3 +30,4 @@ module.exports = function(app, options) {
 };
 
 module.exports.errors = errors;
+module.exports.RestAdapter = RestAdapter;
