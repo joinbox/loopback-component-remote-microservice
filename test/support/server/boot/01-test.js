@@ -5,10 +5,12 @@ module.exports = async function(app) {
             id: 'testingToken',
         });
     }
-    // log queries
-    /* app.use((req, res, next) => {
-        const serviceName = app.get('microservice').name;
-        console.log(`${serviceName}: ${req.path}`);
-        next();
-    }); */
+    if (app.models.RemoteModel) {
+        await app.models.RemoteModel.create([{
+            locale: 'de-ch',
+        },
+        {
+            locale: 'it-it',
+        }]);
+    }
 };

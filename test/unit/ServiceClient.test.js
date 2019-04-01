@@ -59,7 +59,7 @@ describe('The ServiceClient class', () => {
 
     describe('ServiceClient._defineModel(definition, modelsConfig)', () => {
 
-        before('create mock datasource', async function(){
+        before('create mock datasource', async function() {
             const ds = {
                 models: new Map(),
                 createModel(name, properties, settings) {
@@ -123,7 +123,7 @@ describe('The ServiceClient class', () => {
             await this.client.discover();
         });
 
-        it('registers the model globally and private by default', function(){
+        it('registers the model globally and private by default', function() {
             const name = 'ConfigEmpty';
             expect(this.ds.models.has(name)).to.be.equal(true);
             expect(this.ds.app.models.has(name)).to.be.equal(true);
@@ -132,7 +132,7 @@ describe('The ServiceClient class', () => {
             expect(this.client.models).to.have.property(name);
         });
 
-        it('registers the model globally but not public if the config is set to true', function(){
+        it('registers the model globally but not public if the config is set to true', function() {
             const name = 'ConfigTrue';
             expect(this.ds.models.has(name)).to.be.equal(true);
             expect(this.ds.app.models.has(name)).to.be.equal(true);
@@ -141,7 +141,7 @@ describe('The ServiceClient class', () => {
             expect(this.client.models).to.have.property(name);
         });
 
-        it('does not register the model if it is set to false', function(){
+        it('does not register the model if it is set to false', function() {
             const name = 'ConfigFalse';
             expect(this.ds.models.has(name)).to.be.equal(false);
             expect(this.ds.app.models.has(name)).to.be.equal(false);
@@ -149,7 +149,7 @@ describe('The ServiceClient class', () => {
             expect(this.client.models).to.not.have.property(name);
         });
 
-        it('does not register the model if expose is set to false', function(){
+        it('does not register the model if expose is set to false', function() {
             const name = 'ConfigNoExpose';
             expect(this.ds.models.has(name)).to.be.equal(false);
             expect(this.ds.app.models.has(name)).to.be.equal(false);
@@ -157,7 +157,7 @@ describe('The ServiceClient class', () => {
             expect(this.client.models).to.not.have.property(name);
         });
 
-        it('registers the model publicly if isPublic is set to true', function(){
+        it('registers the model publicly if isPublic is set to true', function() {
             const name = 'ConfigPublic';
             expect(this.ds.models.has(name)).to.be.equal(true);
             expect(this.ds.app.models.has(name)).to.be.equal(true);
@@ -165,7 +165,7 @@ describe('The ServiceClient class', () => {
             expect(this.client.models).have.property(name);
         });
 
-        it('registers the model locally and and therefore the isGlobal has no effect', function(){
+        it('registers the model locally and and therefore the isGlobal has no effect', function() {
             const name = 'ConfigNegated';
             expect(this.ds.models.has(name)).to.be.equal(true);
             expect(this.ds.app.models.has(name)).to.be.equal(false);

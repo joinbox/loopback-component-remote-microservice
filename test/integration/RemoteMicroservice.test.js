@@ -33,10 +33,11 @@ describe('The RemoteMicroservice Component', () => {
 
         expect(body).to.have.property('restApiRoot', '/api');
         expect(body).to.have.property('started');
-        expect(body).to.have.property('version');
+        expect(body).to.have.property('version', '1.2.0');
         expect(body).to.have.property('models');
 
         const models = body.models.reduce((map, definition) => {
+            // eslint-disable-next-line no-param-reassign
             map[definition.name] = definition;
             return map;
         }, {});
@@ -91,10 +92,10 @@ describe('The RemoteMicroservice Component', () => {
         const client = await this.component.getService(this.remoteServiceDefault);
         const books = await client.models.Book.find({ include: 'authors' });
         const test = new this.service.app.models.Test();
-        const book = books.find(book => book.authors().length > 0);
+        const bookWithAuthors = books.find(book => book.authors().length > 0);
 
         // create a model having a relation to a remote model
-        test.book(book);
+        test.book(bookWithAuthors);
         await test.save();
 
         const endpoint = `tests/${test.id}`;
@@ -121,6 +122,7 @@ describe('The RemoteMicroservice Component', () => {
             } catch (error) {
                 expect(error).to.be.instanceof(DiscoveryMaxDelayError);
                 expect(error).to.have.property('message').that.includes(this.remoteUnavailable);
+                return Promise.resolve();
             }
         });
 
@@ -132,6 +134,7 @@ describe('The RemoteMicroservice Component', () => {
             } catch (error) {
                 expect(error).to.be.instanceof(ConnectionMaxDelayError);
                 expect(error).to.have.property('message').that.includes(this.remoteUnavailable);
+                return Promise.resolve();
             }
         });
 
@@ -141,6 +144,7 @@ describe('The RemoteMicroservice Component', () => {
                 return Promise.reject(new Error('An unconfigured service should lead to an error'));
             } catch (error) {
                 expect(error).to.be.instanceof(ServiceNotFoundError);
+                return Promise.resolve();
             }
         });
 
@@ -203,6 +207,7 @@ describe('The RemoteMicroservice Component', () => {
             } catch (err) {
                 // @todo: check the type
                 expect(err).to.be.instanceof(Error);
+                return Promise.resolve();
             }
         });
 
@@ -213,6 +218,7 @@ describe('The RemoteMicroservice Component', () => {
                 return Promise.reject(new Error(msg));
             } catch (err) {
                 expect(err).to.be.instanceof(DiscoveryNotSupportedError);
+                return Promise.resolve();
             }
         });
 
@@ -229,7 +235,7 @@ describe('The RemoteMicroservice Component', () => {
             const service = await this.component.getService(this.remoteServiceName);
             expect(service).to.have.property('models');
 
-            const models = service.models;
+            const { models } = service;
 
             expect(models).to.have.property('Book');
             expect(models).to.have.property('Author');
@@ -248,7 +254,7 @@ describe('The RemoteMicroservice Component', () => {
 
         it('exposes models providing access to data', async function() {
             const service = await this.component.getService(this.remoteServiceName);
-            const Author = service.models.Author;
+            const { Author } = service.models;
             // this now accesses the currently running instance over the rest api
             const result = await Author.find({ where: { lastName: { like: 'Orw%' } } });
             expect(result).to.have.length(1);
@@ -256,10 +262,10 @@ describe('The RemoteMicroservice Component', () => {
 
         it('exposes models providing access to data and deliver a valid id', async function() {
             const service = await this.component.getService(this.remoteServiceName);
-            const Author = service.models.Author;
+            const { Author } = service.models;
             const result = await Author.findOne({ where: { lastName: { like: 'Orw%' } } });
 
-            expect(result).to.be.ok;
+            expect(result).to.be.an('object');
 
             expect(result).to.have.property('lastName', 'Orwell');
             expect(result).to.have.property('id').that.is.a('number');
@@ -268,7 +274,7 @@ describe('The RemoteMicroservice Component', () => {
         it('exposes models allowing to perform includes', async function() {
             // todo adjust the service config to point to the currently running instance
             const service = await this.component.getService(this.remoteServiceName);
-            const Author = service.models.Author;
+            const { Author } = service.models;
             // this now accesses the currently running instance over the rest api
             const result = await Author.find({ where: { firstName: 'George' }, include: 'books' });
 
@@ -293,7 +299,7 @@ describe('The RemoteMicroservice Component', () => {
         it('exposes models providing query limit support', async function() {
             // todo adjust the service config to point to the currently running instance
             const service = await this.component.getService(this.remoteServiceName);
-            const Author = service.models.Author;
+            const { Author } = service.models;
             // this now accesses the currently running instance over the rest api
             const result = await Author.find({ limit: 2 });
 
@@ -304,7 +310,7 @@ describe('The RemoteMicroservice Component', () => {
             'exposes models providing custom remote methods and properly maps arguments to the outgoing request',
             async function() {
                 const service = await this.component.getService(this.remoteServiceDefault);
-                const RemoteModel = service.models.RemoteModel;
+                const { RemoteModel } = service.models;
 
                 // this argument should be sent to the remote service via header
                 const languages = 'de-ch, de-it, en-gb';
@@ -314,35 +320,6 @@ describe('The RemoteMicroservice Component', () => {
                 expect(result).to.be.equal(`Hi ${message} in ${languages}`);
             },
         );
-
-        it('forwards the access token from the context if configured to do so', async function() {
-            const service = await this.component.getService(this.remoteServiceDefault);
-            const RemoteModel = service.models.RemoteModel;
-
-            const id = 'testingToken';
-            // normally one has to take the options from the context!
-            const contextOptions = { accessToken: { id } };
-            // @see: remote-model.js
-            const response = await RemoteModel.checkAccessToken(contextOptions);
-            expect(response).to.be.equal(id);
-        });
-
-        it('does not forward the access token from the context by default', async function() {
-            const service = await this.component.getService(this.remoteServiceName);
-            const RemoteModel = service.models.RemoteModel;
-
-            const id = 'testingToken';
-            // normally one has to take the options from the context!
-            const contextOptions = { accessToken: { id } };
-            // @see: remote-model.js
-            try {
-                await RemoteModel.checkAccessToken(contextOptions);
-                const msg = 'The access token should not be forwarded if it is not configured to do so'
-                return Promise.reject(new Error(msg));
-            } catch(err) {
-                expect(err.message).to.contain('AccessToken was not properly resolved');
-            }
-        });
 
     });
 

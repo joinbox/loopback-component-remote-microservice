@@ -1,8 +1,13 @@
 {
     "name": "RemoteModel",
-    "base": "Model",
+    "base": "PersistedModel",
     "http": {
         "path": "/a-remote-model"
+    },
+    "properties": {
+        "locale": {
+            "type": "string"
+        }
     },
     "methods": {
         "sayHi": {

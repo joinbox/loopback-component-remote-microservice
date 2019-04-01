@@ -88,9 +88,21 @@ module.exports = class RemoteMicroservice {
      * @return {DataSource}
      */
     normalizeDataSource(dataSource) {
+        // Assign the configuration option for backwards compatibility.
+        // The correct (but undocumented) way of setting this option is to configure your data
+        // source:
+        // "data-source": {
+        //   "options": {
+        //     "rest": {
+        //       "passAccessToken": true
+        //     }
+        //   }
+        // }
         const passToken = dataSource.settings.passAccessToken === true;
-        // eslint-disable-next-line no-param-reassign
-        dataSource.connector.remotes.serverAdapter.options.passAccessToken = passToken;
+        if (passToken === true) {
+            // eslint-disable-next-line no-param-reassign
+            dataSource.connector.remotes.serverAdapter.options.passAccessToken = true;
+        }
         return dataSource;
     }
 

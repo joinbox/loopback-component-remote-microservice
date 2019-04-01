@@ -31,7 +31,7 @@ function forkRemoteService() {
         process.exit(0);
     });
 
-    prc.on('message', (m)=> {
+    prc.on('message', (m) => {
         if (m && m.identifier === 'service-error') {
             console.error(`Remote Service could not be booted: ${m.message}`);
             process.exit(0);
@@ -42,7 +42,7 @@ function forkRemoteService() {
         if (m === 'service-started') {
             console.info('Remote Service is started');
             localService.start()
-                .then(()=>{
+                .then(() => {
                     console.log('Local service started');
                 })
                 .catch((err) => {
@@ -55,5 +55,5 @@ function forkRemoteService() {
     process.on('exit', () => {
         prc.send('shutdown-service');
     });
-})()
+})();
 

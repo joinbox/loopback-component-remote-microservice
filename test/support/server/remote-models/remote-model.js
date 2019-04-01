@@ -3,7 +3,7 @@ module.exports = function(RemoteModel) {
      * This is an example how the http properties are added to the context, consumed by
      * the sayHi method.
      */
-    RemoteModel.beforeRemote('sayHi', async (ctx) => {
+    RemoteModel.beforeRemote('sayHi', async(ctx) => {
         const acceptLanguage = ctx.req.headers['accept-language'];
         ctx.args.options.languages = acceptLanguage;
     });
@@ -20,8 +20,8 @@ module.exports = function(RemoteModel) {
      * @param ctx
      * @return {Promise<string>}
      */
-    RemoteModel.sayHi = async function(name, options, req) {
-        const languages = options.languages;
+    RemoteModel.sayHi = async function(name, options) {
+        const { languages } = options;
         return `Hi ${name} in ${languages}`;
     };
 
@@ -34,11 +34,22 @@ module.exports = function(RemoteModel) {
     RemoteModel.checkAccessToken = async function(ctx) {
         const { accessToken } = ctx;
         // the context will not have an access token in this case, because we did not create one
-        if(accessToken && accessToken.id === 'testingToken') {
+        if (accessToken && accessToken.id === 'testingToken') {
             return accessToken.id;
         }
         const error = new Error('AccessToken was not properly resolved');
         error.status = 400;
         throw error;
     };
+
+    RemoteModel.beforeRemote('find', (ctx, unused, next) => {
+        const locale = (ctx.req.headers || {})['accept-language'];
+        if (!ctx.args.filter.where) {
+            ctx.args.filter.where = {};
+        }
+        if (locale) {
+            ctx.args.filter.where.locale = locale;
+        }
+        next();
+    });
 };
