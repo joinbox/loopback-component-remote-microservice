@@ -1,6 +1,7 @@
 # loopback-component-remote-microservice
 
-Loopback component to expose and consume models of remote microservices.
+Loopback component to expose and consume models of remote microservices using a discovery and strong
+remoting.
 
 ## Installation
 
@@ -16,18 +17,21 @@ into your application using the corresponding `component-config.json` (see confi
 
 ## Configuration
 
-Basically the configuration consists of a consuming part (services) and the exposing part (discovery).
+Basically the configuration consists of a consuming part (services) and the serving part
+(discovery). The following configuration examples are given in Javascript but work analogous for
+json files.
 
 ```Javascript
-{
-    "loopback-component-remote-microservice": {
+// component.config.{env}.js
+module.exports = {
+    "@joinbox/loopback-component-remote-microservice": {
         // Configuration how the component is accessible from the app (default: "remote-microservice")
-        "exposeAt": "remote-microservice",
+        exposeAt: "remote-microservice",
         // Configuration to consume remote services.
-        "services": {},
+        services: {},
         // Configuration for the discovery-api that can be consumed by other services.
         // If you don't configure the discovery, it will not be mounted into the app.
-        "discovery": {}
+        discovery: {}
     }
 }
 ```
@@ -36,20 +40,23 @@ For details, see below.
 
 ### DiscoveryConfiguration
 ```Javascript
-{
+// component.config.{env}.js
+module.exports = {
+    "@joinbox/loopback-component-remote-microservice": {
         // Configuration for the discovery-api that can be consumed by other services.
         // If you don't configure the discovery, it will not be mounted into the app.
-        "discovery": {
+        discovery: {
             // path to load the root discovery information from, defaults to "discovery"
-            "pathname": "/discovery",
+            pathname: "/discovery",
             // http verb to get the root discovery information, defaults to GET
-            "method": "GET",
-            // disable the api, default is false
-            "disabled": false,
+            method: "GET",
+            // disable the discovery, default is false, can be used to disable the discovery for 
+            // certain environments
+            disabled: false,
             // which models should be discoverable, will include all models if not set
-            "models": {
-                "ModelName1": true,
-                "ModelName2": false,
+            models: {
+                ModelName1: true,
+                ModelName2: false,
             }
         }
     }
@@ -63,40 +70,56 @@ component will reject the access. If no discovery is configured, the service-cli
 http client to access the service and it's api.
 
 ```Javascript
-{
+// component.config.{env}.js
+module.exports = {
     // config for the clients to consume other services
-    "services": {
-        "service.id": {
-            // remote data source, has to be properly configured in your app
-            "dataSource": "remote-data-source-name",
-            // rootpath of your api, defaults to "/api"
-            "restApiRoot": "/api",
-            // describes how to discover the service, is the same as a discovery definition (see above)
-            // with some configuration for the connection handling
-            "discovery": {
+    services: {
+        serviceId: {
+            // Data source: has to be properly configured in your app and must use a remote
+            // connector.
+            dataSource: "remote-data-source-name",
+            // rootpath of your remote service api, defaults to "/api"
+            restApiRoot: "/api",
+            // describes how to discover the service, is the same as a discovery definition 
+            // (see above) with some configuration for the connection handling
+            discovery: {
                 // if set to true, the component will start fetching models in the boot process
-                "autoDiscover": true,
+                autoDiscover: true,
                 // timeout for requests to the discovery endpoint in ms (default: 10000)
-                "timeout": 10000,
+                timeout: 10000,
                 // initial delay for retries, will be increased with every step (default: 1000)
-                "delay": 1000,
+                delay: 1000,
                 // offset that will be multiplied with the initial delay in each retry (default: 2)
-                "delayFactor": 2,
-                // if the delay multiplied with the delay factor reaches maxDelay, the discovery will be aborted (default: 30000)
-                "maxDelay": 30000,
+                // we do not do an exponential backup
+                delayFactor: 2,
+                // if the delay multiplied with the delay factor reaches maxDelay, the discovery 
+                // will be aborted (default: 30000)
+                // So in the default case the discovery will be queried 6 times
+                maxDelay": 30000,
                 // models
-                "models": {
-                    // legacy format, will be transformed to { expose: true, isGlobal: true, isPublic: false }
-                    "ModelName1": true,
-                    // legacy format, will be transformed to { expose: false, isGlobal: false, isPublic: false }
-                    "ModelName2": false,
-                    "ModelName3": {
+                models: {
+                    // legacy format, will be transformed to 
+                    // { 
+                    //      expose: true, 
+                    //      isGlobal: true, 
+                    //      isPublic: false
+                    // }
+                    ModelName1: true,
+                    // legacy format, will be transformed to 
+                    // { 
+                    //     expose: false,
+                    //     isGlobal: false,
+                    //     isPublic: false
+                    // }
+                    ModelName2: false,
+                    ModelName3: {
                         // the model is hooked into the app (or exposed on the api)
-                        "expose": true,
-                        // the model will be attached to the application and can be consumed globally (default: true)
-                        "isGlobal": true
+                        expose: true,
+                        // The model will be attached to the application and can be consumed 
+                        // globally via app.models (default: true)
+                        isGlobal: true,
                         // the model will be reachable via api (default: false)
-                        "isPublic": true,
+                        isPublic: true,
                     }
                 }
             }
@@ -114,12 +137,14 @@ To consume data access the component as follows:
  const remoteServices = app.get('remote-microservice');
  ```
 
- ### Service Client
+### Service Client
 
- To access a client, use the corresponding getter of the component:
+ To access a client, use the corresponding getter of the component. These getters are asynchronous
+ to make sure the discovery is finished.
 
  ```Javascript
-  const client = await services.get('service.id');
+  const client = await services.get('serviceId');
+  const client = await services.getService('serviceId');
  ```
 
  To consume your service over http you can use the accessor methods of the client, returning a
@@ -147,8 +172,8 @@ To consume data access the component as follows:
 
 ### Remote Methods
 
-If the discovered service exposes custom [remote-methods](https://loopback.io/doc/en/lb3/Remote-methods.html)
-the will be available too:
+If the discovered service exposes custom
+[remote-methods](https://loopback.io/doc/en/lb3/Remote-methods.html) they will be available too:
 
 ```Javascript
 const customMethod = await RemoteModel.doRemoteLogic(parameter1, parameter2);
@@ -163,8 +188,8 @@ Let's assume we've got a model called `Locale` on a `language-service`. On this 
 method `resolveByHeader`. Let's also assume that we've got a middleware to preprocess the
 `accept-language` headers. The method definition might look as follows:
 
-```Javascript
-//remote-model.json
+```JSON
+// locale.json
 {
   "methods": {
      "resolveByHeader": {
@@ -201,7 +226,7 @@ module.exports = (Locale) => {
 The remote service will not know how to provide the data which are necessary to populate the options.
 Therefore we extend the definition with a `remote` section:
 
-```Javascript
+```json
 // locale.json
 {
   "methods": {
@@ -235,7 +260,7 @@ Therefore we extend the definition with a `remote` section:
   }
 }
 ```
-The discovery api will reformat the methods definition and we can call it accordingly in the
+The discovery api will reformat the method's definition and we can call it accordingly in the
 consuming service:
 
 ```Javascript
@@ -254,9 +279,8 @@ behavior!!
 Besides the aforementioned possibility to add headers as a parameter using the extended
 configuration for remote methods, we introduced a custom rest adapter. It allows us to:
 
-  1. Pass context options to events emitted by `strong-remoting`
-  2. Forward headers through built-in methods of Loopback models (e.g. an accept-language header
-through the built in find method)
+    1. Pass context options to events emitted by `strong-remoting`.
+    1. Forward headers through built-in methods of Loopback models (e.g. an accept-language header to the find method)
 
 To hook it in, one has to change the configuration format of the datasources to `js`:
 
@@ -266,13 +290,13 @@ const { RestAdapter } = require('@joinbox/loopback-component-remote-microservice
 
 module.exports = {
     "your-remote-service": {
-        "connector": "remote",
-        "adapter": RestAdapter,
-        "options" : {
-            "rest": {
-                "passRemoteHeaders": true,
+        connector: "remote",
+        adapter: RestAdapter,
+        options : {
+            rest: {
+                passRemoteHeaders": true,
                 // remoteHeaders is the default key
-                "remoteHeaderKey": "remoteHeaders",
+                remoteHeaderKey: "remoteHeaders",
             }
         }
     }
@@ -299,8 +323,8 @@ processed by the remote-microservice component.
 
 An analogous problem are access tokens which we might have to forward. Loopback injects the
 accessToken into the options parameter of the methods. Strong-remoting seems to handle this case
-separately (it only consumes `accessTokens`) and we can directly forward the current context to
-the remote method:
+separately (it only consumes `accessToken`) and we can directly forward the current context to the
+remote method:
 
 ```Javascript
 const languageClient = await component.get('language-service');
@@ -312,7 +336,7 @@ const locales = await languageClient.models.Locale.resolveByHeader('de-ch', opti
 > **Note:** Strong-remoting does not properly document how to enable access tokens via config. To
 enable the passing of the access tokens add tot following to your datasource config:
 
-```Javascript
+```json
 // datasources.json
 {
     "language-service": {
@@ -341,7 +365,7 @@ This configuration still works but we recommend using the option given by strong
  ### Error Handling
 
  The package provides a variety of Error types to handle errors. Especially the connection/discovery
- handling is important. The following error types might be important. The follwing cases might occur:
+ handling is important. The following error types might be important:
 
  ```Javascript
  const { errors } = require('@joinbox/loopback-component-remote-microservice');
@@ -367,24 +391,31 @@ This configuration still works but we recommend using the option given by strong
  }
  ```
 
- #### DiscoveryTimeouts
+#### Manual Discovery and DiscoveryTimeouts
 
- If the discovery fails, e.g. reaches the `maxDelay` value, the `get` or `getService` methods will
- be rejected. The result of the discovery is cached internally. One can omit the discovery
- (and the connection process) by passing an additional boolean to the service accessors:
+To get more fine grained control over the discovery of a service, one can trigger the discovery
+manually. By default the `get('serviceId')` and `getService('serviceId')` methods trigger the
+discovery automatically (even if `autoDiscovery` is set to false). One can avoid this behavior by
+passing a second parameter to the corresponding methods:
 
- ```Javascript
+```Javascript
  try {
-    const client = await component.get('service.id');
- catch(error) {
-    if(error instanceof errors.DiscoveryMaxDelayError) {
+    const connectAndDiscover = true;
+    const client = await component.get('service.id', connectAndDiscover);
+ } catch (error) {
+    if (error instanceof errors.DiscoveryMaxDelayError) {
         // false prevents the component from triggering the failed discovery/connection
         const client = await component.get('service.id', false);
+        const rediscover = true;
         // true will restart the discovery process
-        await client.discover(true);
+        await client.discover(rediscover);
     }
  }
  ```
+
+If the discovery fails, e.g. reaches the `maxDelay` value, the `get` or `getService` methods will be
+rejected. The result of the discovery is cached internally. One can omit the discovery (and the
+connection process) by passing an additional boolean to the service accessors.
 
  Using these mechanics will allow you to keep the discovery running in your application as long as
  you want to.
